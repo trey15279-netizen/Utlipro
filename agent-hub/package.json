@@ -1,0 +1,12 @@
+{
+  "name": "agent-hub",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Create AI agents and let them talk to each other, using free local models through Ollama. No API keys.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning server.js",
+    "test": "node --disable-warning=ExperimentalWarning --test test/*.test.js"
+  },
+  "engines": { "node": ">=22.13" }
+}
