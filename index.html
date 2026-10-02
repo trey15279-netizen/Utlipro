@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Command Hub — Never Miss Another Roofing Lead</title>
+  <meta name="description" content="Command Hub instantly alerts you when a new roofing lead comes in, so you can call or text right away." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath d='M20 2 36 11v18L20 38 4 29V11z' fill='%231463ff'/%3E%3Cpath d='M26 14.5a8 8 0 1 0 0 11' fill='none' stroke='%23fff' stroke-width='4.5' stroke-linecap='round'/%3E%3C/svg%3E" />
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="logo" viewBox="0 0 40 40">
+        <path d="M20 2 36 11v18L20 38 4 29V11z" fill="currentColor" />
+        <path d="M26 14.5a8 8 0 1 0 0 11" fill="none" style="stroke: var(--logo-inner, #fff)" stroke-width="4.5" stroke-linecap="round" />
+      </symbol>
+      <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></symbol>
+      <symbol id="i-phone" viewBox="0 0 24 24"><path d="M5 3h3l2 5-2.5 1.5a11 11 0 0 0 6 6L15 13l5 2v3a2 2 0 0 1-2 2A16 16 0 0 1 3 5a2 2 0 0 1 2-2z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M15 3a6 6 0 0 1 6 6M15 6.5A2.5 2.5 0 0 1 17.5 9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+      <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 21h18M5 18v-5M8 18v-8M11 18v-4M14 18V7M17 18v-6M20 18V4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+      <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="m8.5 12 2.5 2.5 4.5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-mobile" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10.5 18.5h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+      <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="9" r="3.5" fill="currentColor"/><path d="M5.5 19a6.5 6.5 0 0 1 13 0" fill="currentColor"/></symbol>
+      <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20a2 2 0 0 0 4 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></symbol>
+      <symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.2" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.2" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.2" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.2" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+      <symbol id="i-cog" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+      <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z" fill="currentColor"/><path d="M8 9.5h8M8 12.5h5" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></symbol>
+      <symbol id="i-call" viewBox="0 0 24 24"><path d="M6 3h3l2 5-2.5 1.5a11 11 0 0 0 6 6L16 13l5 2v3a2 2 0 0 1-2 2A16 16 0 0 1 4 5a2 2 0 0 1 2-2z" fill="currentColor"/></symbol>
+      <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="currentColor"/><path d="m7 12.5 3 3 7-7" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-play" viewBox="0 0 24 24"><path d="M9 7v10l8-5z" fill="currentColor"/></symbol>
+      <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m20 20-4.5-4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+      <symbol id="i-lock" viewBox="0 0 24 24"><rect x="6" y="11" width="12" height="9" rx="2" fill="currentColor"/><path d="M8.5 11V8a3.5 3.5 0 0 1 7 0v3" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+    </defs>
+  </svg>
+
+  <!-- Header -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="#" class="brand" aria-label="Command Hub home">
+        <svg class="brand-logo"><use href="#logo"/></svg>
+        <span>Command Hub</span>
+      </a>
+      <nav class="main-nav" id="main-nav">
+        <a href="#how-it-works">How It Works</a>
+        <a href="#features">Features</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#faq">FAQ</a>
+      </nav>
+      <a href="#pricing" class="btn btn-dark btn-sm header-cta">Start Free Trial <svg class="ico"><use href="#i-arrow"/></svg></a>
+      <button class="nav-toggle" aria-label="Toggle menu" aria-expanded="false" aria-controls="main-nav"><span></span><span></span><span></span></button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Hero -->
+    <section class="hero">
+      <div class="container hero-grid">
+        <div class="hero-copy">
+          <p class="eyebrow">Faster leads. More jobs.</p>
+          <h1>Never Miss Another <span class="accent">Roofing Lead.</span></h1>
+          <p class="lead">Command Hub instantly alerts you when a new lead comes in, so you can call or text right away. No more missed opportunities. No more slow business.</p>
+
+          <ul class="hero-badges">
+            <li><svg class="ico-lg"><use href="#i-bolt"/></svg><span>Instant<br/>Alerts</span></li>
+            <li><svg class="ico-lg"><use href="#i-phone"/></svg><span>Call &amp; Text<br/>with 1 Click</span></li>
+            <li><svg class="ico-lg"><use href="#i-chart"/></svg><span>Mobile Friendly<br/>Dashboard</span></li>
+            <li><svg class="ico-lg"><use href="#i-shield"/></svg><span>Secure &amp;<br/>Reliable</span></li>
+          </ul>
+
+          <div class="hero-actions">
+            <a href="#pricing" class="btn btn-primary btn-lg">Start Your 14-Day Free Trial <svg class="ico"><use href="#i-arrow"/></svg></a>
+            <a href="#how-it-works" class="btn-link"><span class="play-ring"><svg class="ico"><use href="#i-play"/></svg></span> Watch 1 Min Demo</a>
+          </div>
+          <p class="fineprint">No setup fees <i>•</i> Cancel anytime <i>•</i> Just $697/month after trial</p>
+        </div>
+
+        <!-- Interactive demo -->
+        <div class="hero-demo">
+          <div class="demo-top">
+            <span class="pill">Interactive Demo</span>
+            <span class="demo-hint">Click “Submit Test Lead” below to see how it works.</span>
+          </div>
+
+          <div class="dashboard" aria-label="Command Hub dashboard preview">
+            <aside class="dash-side">
+              <div class="dash-brand"><svg class="brand-logo sm"><use href="#logo"/></svg> Command Hub</div>
+              <a class="active"><svg class="ico"><use href="#i-grid"/></svg>Dashboard</a>
+              <a><svg class="ico"><use href="#i-bell"/></svg>Leads</a>
+              <a><svg class="ico"><use href="#i-bell"/></svg>Notifications</a>
+              <a><svg class="ico"><use href="#i-cog"/></svg>Settings</a>
+            </aside>
+            <div class="dash-main">
+              <div class="dash-search"><svg class="ico"><use href="#i-search"/></svg></div>
+              <div class="dash-cols">
+                <div class="dash-panel">
+                  <div class="panel-head"><strong>Live Leads</strong><span class="live"><i></i>Live</span><span class="muted">View All →</span></div>
+                  <ul class="lead-list" id="lead-list"></ul>
+                </div>
+                <div class="dash-panel">
+                  <div class="panel-head"><strong>Recent Activity</strong></div>
+                  <ul class="activity-list" id="activity-list"></ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="phone hero-phone">
+            <div class="phone-screen">
+              <div class="phone-status"><span>9:41</span></div>
+              <svg class="phone-lock"><use href="#i-lock"/></svg>
+              <div class="phone-time">10:24</div>
+              <div class="phone-date">Mon, Sep 29</div>
+              <div class="phone-notif" id="phone-notif">
+                <div class="pn-head"><svg class="brand-logo xs"><use href="#logo"/></svg> Command Hub <span>now</span></div>
+                <strong>New Lead</strong>
+                <span id="pn-name">John Smith</span>
+                <span id="pn-phone">(864) 555-0187</span>
+                <span id="pn-service">Roof Repair</span>
+              </div>
+              <div class="phone-actions">
+                <span class="pa green"><svg class="ico"><use href="#i-call"/></svg></span>
+                <span class="pa blue"><svg class="ico"><use href="#i-chat"/></svg></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="toast" id="toast" role="status" aria-live="polite">
+            <span class="toast-avatar"><svg class="ico"><use href="#i-user"/></svg><i></i></span>
+            <div><strong>New Lead Received</strong><span id="toast-text">John Smith • Roof Repair</span></div>
+            <small>now</small>
+          </div>
+
+          <button class="btn btn-primary btn-sm demo-btn" id="demo-btn" type="button">Submit Test Lead <svg class="ico"><use href="#i-arrow"/></svg></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- How it works -->
+    <section class="how" id="how-it-works">
+      <div class="container how-grid">
+        <div class="flow-card">
+          <span class="pill">Watch the 1-minute overview</span>
+          <div class="flow">
+            <form class="flow-form" id="flow-form" autocomplete="off">
+              <strong>Roofing Website</strong>
+              <input type="text" name="name" placeholder="Name" aria-label="Name" />
+              <input type="tel" name="phone" placeholder="Phone" aria-label="Phone" />
+              <input type="text" name="service" placeholder="Service Needed" aria-label="Service needed" />
+              <button type="submit" class="btn btn-primary btn-xs">Submit</button>
+            </form>
+            <svg class="flow-arrow"><use href="#i-arrow"/></svg>
+            <div class="flow-hub">
+              <div class="fh-head"><svg class="brand-logo xs"><use href="#logo"/></svg> Command Hub <span>›</span></div>
+              <div class="fh-card">
+                <svg class="ico fh-bell"><use href="#i-bell"/></svg>
+                <div>
+                  <strong>New Lead!</strong>
+                  <span data-flow="name">John Smith</span>
+                  <span data-flow="phone">(864) 555-0187</span>
+                  <span data-flow="service">Roof Repair</span>
+                </div>
+                <span class="fh-chat"><svg class="ico"><use href="#i-chat"/></svg></span>
+              </div>
+            </div>
+            <svg class="flow-arrow"><use href="#i-arrow"/></svg>
+            <div class="phone flow-phone">
+              <div class="phone-screen">
+                <svg class="phone-lock"><use href="#i-lock"/></svg>
+                <div class="phone-time">10:24</div>
+                <div class="phone-date">Mon, Sep 29</div>
+                <div class="phone-notif show">
+                  <strong>New Lead</strong>
+                  <span data-flow="name">John Smith</span>
+                  <span data-flow="phone">(864) 555-0187</span>
+                  <span data-flow="service">Roof Repair</span>
+                </div>
+                <div class="phone-actions">
+                  <span class="pa green"><svg class="ico"><use href="#i-call"/></svg></span>
+                  <span class="pa blue"><svg class="ico"><use href="#i-chat"/></svg></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="how-copy">
+          <p class="eyebrow">See how it works</p>
+          <h2>From Website Form<br/>to Your Phone — Instantly.</h2>
+          <p class="sub">Watch how Command Hub captures your website leads, notifies you in real time, and keeps everything organized in one simple dashboard.</p>
+          <ul class="checklist">
+            <li><svg class="ico"><use href="#i-check"/></svg>Lead submitted on your website</li>
+            <li><svg class="ico"><use href="#i-check"/></svg>Instant alert (call, text, or both)</li>
+            <li><svg class="ico"><use href="#i-check"/></svg>View details in your dashboard</li>
+            <li><svg class="ico"><use href="#i-check"/></svg>Call or text with one click</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section class="features" id="features">
+      <div class="container">
+        <p class="eyebrow center">Built for roofers</p>
+        <h2 class="center">Everything You Need to Win More Jobs.</h2>
+        <div class="feature-grid">
+          <article><svg class="ico-xl"><use href="#i-bolt"/></svg><h3>Real-Time Alerts</h3><p>Get notified the second a lead comes in — no delays.</p></article>
+          <article><svg class="ico-xl"><use href="#i-phone"/></svg><h3>Call &amp; Text Instantly</h3><p>Reach out with 1 click from your phone or computer.</p></article>
+          <article><svg class="ico-xl"><use href="#i-mobile"/></svg><h3>Mobile Friendly</h3><p>Use it anywhere, anytime on any device.</p></article>
+          <article><svg class="ico-xl"><use href="#i-shield"/></svg><h3>Secure &amp; Compliant</h3><p>Bank-grade security and full data protection.</p></article>
+          <article><svg class="ico-xl"><use href="#i-chart"/></svg><h3>Simple Dashboard</h3><p>See all your leads, status, and performance in one place.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pricing -->
+    <section class="pricing" id="pricing">
+      <div class="container-wide">
+        <div class="pricing-band">
+          <div class="price">
+            <p class="eyebrow light">Simple pricing</p>
+            <div class="amount">Just $697/Month</div>
+            <p>14-day free trial. Cancel anytime.</p>
+          </div>
+          <div class="price-cta">
+            <a href="mailto:hello@commandhub.app?subject=Start%20my%2014-day%20free%20trial" class="btn btn-primary btn-lg">Start Your 14-Day Free Trial <svg class="ico"><use href="#i-arrow"/></svg></a>
+            <p class="fineprint light">No setup fees <i>•</i> No contracts <i>•</i> Cancel anytime</p>
+          </div>
+          <div class="price-trust">
+            <svg class="ico-xl"><use href="#i-shield"/></svg>
+            <div><strong>Your data is safe with us.</strong><p>Bank-grade security, SSL encryption, and full privacy.</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Testimonial + FAQ -->
+    <section class="social" id="faq">
+      <div class="container social-grid">
+        <div class="testimonial-card">
+          <div class="quote-mark">“</div>
+          <div class="slides" id="slides">
+            <figure class="slide active">
+              <blockquote>“Command Hub has completely changed the way we handle our leads. We went from chasing calls to getting instant notifications. It’s simple, fast, and actually works.”</blockquote>
+              <figcaption><span class="avatar">MR</span><div><strong>Mike Reynolds</strong><small>Roofing Business Owner</small><span class="stars">★★★★★</span></div></figcaption>
+            </figure>
+            <figure class="slide">
+              <blockquote>“We used to lose leads that came in after hours. Now my phone buzzes the second someone fills out the form and we’re calling them back in minutes.”</blockquote>
+              <figcaption><span class="avatar">DT</span><div><strong>Dana Torres</strong><small>Owner, Summit Roofing</small><span class="stars">★★★★★</span></div></figcaption>
+            </figure>
+            <figure class="slide">
+              <blockquote>“Setup took one afternoon. The dashboard is clean and my whole crew knows exactly which leads are new and who’s already been contacted.”</blockquote>
+              <figcaption><span class="avatar">JK</span><div><strong>James Keller</strong><small>Roofing Sales Manager</small><span class="stars">★★★★★</span></div></figcaption>
+            </figure>
+          </div>
+          <div class="slider-nav">
+            <button type="button" id="prev" aria-label="Previous testimonial">‹</button>
+            <span class="dots" id="dots"></span>
+            <button type="button" id="next" aria-label="Next testimonial">›</button>
+          </div>
+        </div>
+
+        <div class="faq">
+          <p class="eyebrow">Frequently asked questions</p>
+          <h2>Got Questions? We’ve Got Answers.</h2>
+          <div class="faq-list">
+            <details><summary>How does the 14-day free trial work?</summary><p>Sign up and get full access to every feature for 14 days. We’ll connect your website form, and you’ll start receiving lead alerts right away. If it’s not for you, cancel before the trial ends and you won’t be charged.</p></details>
+            <details><summary>Do I need to install anything?</summary><p>No. Command Hub runs in your browser on any phone, tablet, or computer. We give you a small snippet (or connect your existing form) so leads flow in automatically.</p></details>
+            <details><summary>Is there a setup fee?</summary><p>No setup fees, ever. One simple price of $697/month after your trial — no contracts.</p></details>
+            <details><summary>What happens after the trial?</summary><p>Your plan continues at $697/month and all of your leads and history stay right where they are. You can cancel anytime from your settings.</p></details>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <a href="#" class="brand light"><svg class="brand-logo"><use href="#logo"/></svg><span>Command Hub</span></a>
+      <nav>
+        <a href="#how-it-works">How It Works</a>
+        <a href="#features">Features</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#faq">FAQ</a>
+      </nav>
+      <p>Built for Roofers. Powered by Results.</p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
