@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Command Hub</title>
+  <meta name="description" content="Command Hub dashboard: see, call and text your roofing leads the moment they come in." />
+  <meta name="theme-color" content="#0f1a33" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="app.css" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath d='M20 2 36 11v18L20 38 4 29V11z' fill='%231463ff'/%3E%3Cpath d='M26 14.5a8 8 0 1 0 0 11' fill='none' stroke='%23fff' stroke-width='4.5' stroke-linecap='round'/%3E%3C/svg%3E" />
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="logo" viewBox="0 0 40 40">
+        <path d="M20 2 36 11v18L20 38 4 29V11z" fill="currentColor" />
+        <path d="M26 14.5a8 8 0 1 0 0 11" fill="none" style="stroke: var(--logo-inner, #fff)" stroke-width="4.5" stroke-linecap="round" />
+      </symbol>
+      <symbol id="i-grid" viewBox="0 0 24 24"><path d="M4 9.5 12 4l8 5.5V20H4z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M9.5 20v-6h5v6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></symbol>
+      <symbol id="i-inbox" viewBox="0 0 24 24"><path d="M4 13 6.5 5h11L20 13v6H4z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M4 13h4.5l1 2.5h5l1-2.5H20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></symbol>
+      <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20.5a2 2 0 0 0 4 0" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></symbol>
+      <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M3.5 12h17M12 3.5c2.5 2.6 3.5 5.4 3.5 8.5s-1 5.9-3.5 8.5c-2.5-2.6-3.5-5.4-3.5-8.5s1-5.9 3.5-8.5z" fill="none" stroke="currentColor" stroke-width="1.7"/></symbol>
+      <symbol id="i-cog" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+      <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m20 20-4.5-4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+      <symbol id="i-call" viewBox="0 0 24 24"><path d="M6 3h3l2 5-2.5 1.5a11 11 0 0 0 6 6L16 13l5 2v3a2 2 0 0 1-2 2A16 16 0 0 1 4 5a2 2 0 0 1 2-2z" fill="currentColor"/></symbol>
+      <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+      <symbol id="i-chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-arrow-ur" viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="m6 12.5 4 4 8-9" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-x" viewBox="0 0 24 24"><path d="M7 7l10 10M17 7 7 17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+      <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="9" r="3.6" fill="currentColor"/><path d="M5.5 19.5a6.5 6.5 0 0 1 13 0z" fill="currentColor"/></symbol>
+      <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="17" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="m4 7 8 6 8-6" fill="none" stroke="currentColor" stroke-width="1.7"/></symbol>
+      <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11z" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="10" r="2.3" fill="none" stroke="currentColor" stroke-width="1.7"/></symbol>
+      <symbol id="i-phone" viewBox="0 0 24 24"><path d="M6 3h3l2 5-2.5 1.5a11 11 0 0 0 6 6L16 13l5 2v3a2 2 0 0 1-2 2A16 16 0 0 1 4 5a2 2 0 0 1 2-2z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></symbol>
+      <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3.2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M3 19a6 6 0 0 1 12 0M16 5.5a3 3 0 0 1 0 6M18 14a5 5 0 0 1 3 5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+      <symbol id="i-card" viewBox="0 0 24 24"><rect x="3" y="5.5" width="18" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M3 10h18M7 14.5h4" stroke="currentColor" stroke-width="1.7"/></symbol>
+      <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 2.5 4.5 5.5v6c0 4.8 3.2 8.8 7.5 10 4.3-1.2 7.5-5.2 7.5-10v-6z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="m9 12 2.2 2.2L15.5 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></symbol>
+      <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3" fill="none" stroke="currentColor" stroke-width="1.7"/></symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+      <symbol id="i-signal" viewBox="0 0 24 24"><path d="M3 18h2v2H3zM8 14h2v6H8zM13 10h2v10h-2zM18 5h2v15h-2z" fill="currentColor"/></symbol>
+    </defs>
+  </svg>
+
+  <div class="app">
+    <aside class="side">
+      <a href="#dashboard" class="brand"><svg class="brand-logo"><use href="#logo"/></svg><span>Command Hub</span></a>
+      <nav class="side-nav" id="side-nav">
+        <a href="#dashboard" data-nav="dashboard"><svg class="ico"><use href="#i-grid"/></svg>Dashboard</a>
+        <a href="#leads" data-nav="leads"><svg class="ico"><use href="#i-inbox"/></svg>Leads</a>
+        <a href="#notifications" data-nav="notifications"><svg class="ico"><use href="#i-bell"/></svg>Notifications<span class="nav-count" data-unread hidden></span></a>
+        <a href="#connection" data-nav="connection"><svg class="ico"><use href="#i-globe"/></svg>Website Connection</a>
+        <a href="#settings" data-nav="settings"><svg class="ico"><use href="#i-cog"/></svg>Settings</a>
+      </nav>
+      <div class="sys-status">
+        <span class="dot-ok"></span>
+        <div><strong>All Systems Operational</strong><span>Last updated <span data-ts-live>just now</span></span></div>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="top">
+        <a href="#dashboard" class="brand brand-mobile"><svg class="brand-logo"><use href="#logo"/></svg><span>Command Hub</span></a>
+        <form class="top-search" id="top-search" role="search">
+          <svg class="ico"><use href="#i-search"/></svg>
+          <input id="top-search-input" type="search" placeholder="Search leads, phone numbers, or service type..." aria-label="Search leads" />
+        </form>
+        <a href="#notifications" class="bell" aria-label="Notifications"><svg class="ico"><use href="#i-bell"/></svg><span class="bell-dot" data-unread hidden></span></a>
+        <a href="#settings" class="me">
+          <span class="me-av" id="me-initials">JC</span>
+          <span class="me-txt"><strong id="me-name">John Carter</strong><small id="me-company">Roofer Pro</small></span>
+        </a>
+      </header>
+      <main id="view" class="view" tabindex="-1"></main>
+    </div>
+
+    <nav class="tabbar" aria-label="Main">
+      <a href="#dashboard" data-nav="dashboard"><svg class="ico"><use href="#i-grid"/></svg>Home</a>
+      <a href="#leads" data-nav="leads"><svg class="ico"><use href="#i-inbox"/></svg>Leads</a>
+      <a href="#notifications" data-nav="notifications"><svg class="ico"><use href="#i-bell"/></svg>Alerts<span class="tab-dot" data-unread hidden></span></a>
+      <a href="#connection" data-nav="connection"><svg class="ico"><use href="#i-globe"/></svg>Website</a>
+      <a href="#settings" data-nav="settings"><svg class="ico"><use href="#i-cog"/></svg>Settings</a>
+    </nav>
+  </div>
+
+  <!-- Instant lead alert (lock-screen style) -->
+  <div class="alert" id="alert" hidden>
+    <div class="alert-screen" role="dialog" aria-modal="true" aria-labelledby="alert-title">
+      <div class="alert-status"><span></span><svg class="ico"><use href="#i-signal"/></svg></div>
+      <div class="alert-time" id="alert-time">10:24</div>
+      <div class="alert-date" id="alert-date">Mon, Sep 29</div>
+      <div class="alert-card">
+        <div class="alert-head"><svg class="brand-logo sm"><use href="#logo"/></svg><strong>Command Hub</strong><span>now</span></div>
+        <button type="button" class="alert-body" data-action="alert-open">
+          <strong id="alert-title">New Lead Received</strong>
+          <span id="alert-name">John Smith</span>
+          <span id="alert-service">Roof Repair</span>
+          <span id="alert-phone">(864) 555-0187</span>
+          <small id="alert-ago">Received just now</small>
+        </button>
+        <div class="alert-actions">
+          <a class="btn btn-call btn-lg" id="alert-call" href="#" data-action="call"><svg class="ico"><use href="#i-call"/></svg>Call</a>
+          <a class="btn btn-primary btn-lg" id="alert-text" href="#" data-action="text"><svg class="ico"><use href="#i-chat"/></svg>Text</a>
+        </div>
+      </div>
+      <button type="button" class="alert-dismiss" data-action="alert-close">Swipe up or tap to dismiss</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
