@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Command Hub</title>
+  <meta name="theme-color" content="#0f1a33" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath d='M20 2 36 11v18L20 38 4 29V11z' fill='%231463ff'/%3E%3Cpath d='M26 14.5a8 8 0 1 0 0 11' fill='none' stroke='%23fff' stroke-width='4.5' stroke-linecap='round'/%3E%3C/svg%3E" />
+  <style>
+    :root {
+      --blue: #1463ff; --blue-600: #0b52e0; --navy: #0f1a33; --ink: #0b1430; --text: #2e3852; --muted: #6c7893;
+      --line: #e5eaf3; --bg: #f4f7fc; --red: #dc2626; --red-50: #fdecec;
+      --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body {
+      margin: 0; min-height: 100vh; font-family: var(--font); color: var(--text); font-size: 15px; line-height: 1.5;
+      background: radial-gradient(700px 400px at 90% 0%, rgba(20,99,255,.12), transparent 70%), var(--bg);
+      display: grid; grid-template-columns: 1fr 1fr; -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--blue); text-decoration: none; font-weight: 600; }
+    a:hover { text-decoration: underline; }
+    .pitch {
+      background: var(--navy); color: #c9d3ea; padding: 48px; display: flex; flex-direction: column; justify-content: space-between; gap: 40px;
+    }
+    .brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 700; font-size: 20px; color: #fff; }
+    .brand:hover { text-decoration: none; }
+    .brand svg { width: 32px; height: 32px; color: var(--blue); }
+    .pitch h2 { color: #fff; font-size: 30px; line-height: 1.2; margin: 0 0 18px; letter-spacing: -0.02em; max-width: 420px; }
+    .pitch ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+    .pitch li { display: flex; gap: 10px; align-items: center; }
+    .pitch li svg { width: 18px; height: 18px; color: #22c55e; flex: none; }
+    .pitch small { color: #8d99b3; }
+    main { display: grid; place-items: center; padding: 40px 16px; }
+    .card { width: min(420px, 100%); background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 32px; box-shadow: 0 20px 50px -30px rgba(15,33,72,.35); }
+    .mobile-brand { display: none; color: var(--ink); margin-bottom: 20px; }
+    h1 { color: var(--ink); font-size: 24px; margin: 0 0 6px; letter-spacing: -0.01em; }
+    .sub { color: var(--muted); margin: 0 0 24px; }
+    form { display: grid; gap: 14px; }
+    label { display: grid; gap: 6px; font-size: 13px; font-weight: 600; color: var(--ink); }
+    label small { font-weight: 400; color: var(--muted); }
+    input {
+      font: inherit; font-size: 15px; border: 1px solid var(--line); border-radius: 8px; padding: 11px 12px; width: 100%; color: var(--ink);
+    }
+    input::placeholder { color: #a3adc2; font-weight: 400; }
+    input:focus { outline: 2px solid #bcd3ff; border-color: var(--blue); }
+    button {
+      font: inherit; font-weight: 600; font-size: 15px; background: var(--blue); color: #fff; border: 0; border-radius: 8px;
+      padding: 13px; cursor: pointer; margin-top: 4px;
+    }
+    button:hover { background: var(--blue-600); }
+    button:disabled { opacity: .6; cursor: wait; }
+    :focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+    .error { background: var(--red-50); color: var(--red); border-radius: 8px; padding: 10px 12px; font-size: 13.5px; }
+    .switch { text-align: center; margin: 20px 0 0; font-size: 14px; color: var(--muted); }
+    .fine { text-align: center; font-size: 12.5px; color: var(--muted); margin: 14px 0 0; }
+    @media (max-width: 860px) {
+      body { grid-template-columns: 1fr; }
+      .pitch { display: none; }
+      .mobile-brand { display: inline-flex; }
+      .card { padding: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="logo" viewBox="0 0 40 40"><path d="M20 2 36 11v18L20 38 4 29V11z" fill="currentColor"/><path d="M26 14.5a8 8 0 1 0 0 11" fill="none" stroke="#fff" stroke-width="4.5" stroke-linecap="round"/></symbol>
+      <symbol id="check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="currentColor"/><path d="m7 12.5 3 3 7-7" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    </defs>
+  </svg>
+
+  <aside class="pitch">
+    <a class="brand" href="/"><svg><use href="#logo"/></svg>Command Hub</a>
+    <div>
+      <h2>Never miss another roofing lead.</h2>
+      <ul>
+        <li><svg><use href="#check"/></svg>Instant alerts the second a lead comes in</li>
+        <li><svg><use href="#check"/></svg>Call or text with one tap</li>
+        <li><svg><use href="#check"/></svg>Every lead organized in one dashboard</li>
+      </ul>
+    </div>
+    <small>14-day free trial. No setup fees. Cancel anytime.</small>
+  </aside>
+
+  <main>
+    <div class="card">
+      <a class="brand mobile-brand" href="/"><svg><use href="#logo"/></svg>Command Hub</a>
+
+      <section id="signup" hidden>
+        <h1>Start your free trial</h1>
+        <p class="sub">14 days free. Set up in a few minutes.</p>
+        <form id="signup-form" novalidate>
+          <div class="error" id="signup-error" role="alert" hidden></div>
+          <label>Company name<input id="su-company" name="company" autocomplete="organization" required placeholder="Roofer Pro" /></label>
+          <label>Your name<input id="su-name" name="name" autocomplete="name" required placeholder="John Carter" /></label>
+          <label>Email<input id="su-email" name="email" type="email" autocomplete="email" required placeholder="you@company.com" /></label>
+          <label>Mobile phone <small>We text new leads to this number</small><input id="su-phone" name="phone" type="tel" autocomplete="tel" placeholder="(864) 555-0123" /></label>
+          <label>Password <small>At least 8 characters</small><input id="su-password" name="password" type="password" autocomplete="new-password" minlength="8" required /></label>
+          <button type="submit">Create my account</button>
+        </form>
+        <p class="fine">No credit card needed to start.</p>
+        <p class="switch">Already have an account? <a href="/login">Log in</a></p>
+      </section>
+
+      <section id="login" hidden>
+        <h1>Welcome back</h1>
+        <p class="sub">Log in to see your leads.</p>
+        <form id="login-form" novalidate>
+          <div class="error" id="login-error" role="alert" hidden></div>
+          <label>Email<input id="li-email" name="email" type="email" autocomplete="email" required /></label>
+          <label>Password<input id="li-password" name="password" type="password" autocomplete="current-password" required /></label>
+          <button type="submit">Log in</button>
+        </form>
+        <p class="switch">New to Command Hub? <a href="/signup">Start your free trial</a></p>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    (function () {
+      var mode = location.pathname === "/signup" ? "signup" : "login";
+      document.getElementById(mode).hidden = false;
+      document.title = (mode === "signup" ? "Start Free Trial" : "Log In") + " · Command Hub";
+
+      function wire(formId, errorId, url, fields) {
+        var form = document.getElementById(formId), err = document.getElementById(errorId);
+        form.addEventListener("submit", function (e) {
+          e.preventDefault();
+          err.hidden = true;
+          var body = {};
+          fields.forEach(function (f) { body[f[0]] = document.getElementById(f[1]).value; });
+          var btn = form.querySelector("button");
+          btn.disabled = true;
+          fetch(url, { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+            .then(function (res) {
+              return res.json().catch(function () { return {}; }).then(function (d) {
+                if (!res.ok) throw new Error(d.error || "Something went wrong. Please try again.");
+                location.href = "/app/";
+              });
+            })
+            .catch(function (e2) {
+              err.textContent = e2.message === "Failed to fetch" ? "Can't reach Command Hub. Check your internet connection." : e2.message;
+              err.hidden = false;
+              btn.disabled = false;
+            });
+        });
+      }
+      wire("signup-form", "signup-error", "/api/signup", [["company", "su-company"], ["name", "su-name"], ["email", "su-email"], ["phone", "su-phone"], ["password", "su-password"]]);
+      wire("login-form", "login-error", "/api/login", [["email", "li-email"], ["password", "li-password"]]);
+      document.getElementById(mode === "signup" ? "su-company" : "li-email").focus();
+    })();
+  </script>
+</body>
+</html>

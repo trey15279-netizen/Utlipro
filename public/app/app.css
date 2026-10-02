@@ -142,6 +142,7 @@ h1, h2, h3 { color: var(--ink); margin: 0; letter-spacing: -0.01em; text-wrap: b
   border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; background: #fff; width: 100%; font-size: 14px;
 }
 .textarea { min-height: 90px; resize: vertical; }
+.input::placeholder, .textarea::placeholder { color: #a3adc2; }
 .input:focus, .textarea:focus, .select:focus { outline: 2px solid #bcd3ff; border-color: var(--blue); }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .form-grid .span-2 { grid-column: 1 / -1; }
@@ -171,6 +172,9 @@ h1, h2, h3 { color: var(--ink); margin: 0; letter-spacing: -0.01em; text-wrap: b
 .conn-chip strong { color: var(--green); font-size: 13px; }
 .conn-chip span { color: var(--muted); font-size: 11.5px; }
 .conn-chip > .ico { margin-left: auto; color: var(--muted); }
+.conn-chip.wait { background: var(--blue-50); border-color: #cfe0ff; }
+.conn-chip.wait strong { color: var(--blue); }
+.conn-chip.wait .ok { background: var(--blue); }
 .conn-chip.off { background: var(--red-50); border-color: #f6c9c9; }
 .conn-chip.off strong { color: var(--red); }
 .conn-chip.off .ok { background: var(--red); }
@@ -216,8 +220,8 @@ h1, h2, h3 { color: var(--ink); margin: 0; letter-spacing: -0.01em; text-wrap: b
 .chart .pt { fill: #fff; stroke: var(--blue); stroke-width: 2; }
 .chart .pt.end { fill: var(--blue); }
 .chart .val { fill: var(--ink); font-weight: 700; font-size: 11px; }
-.quick { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.quick .btn { padding: 12px; }
+.quick { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.quick .btn { padding: 12px; white-space: normal; text-align: center; min-width: 0; }
 
 /* ---------- Leads inbox ---------- */
 .inbox-tools { display: flex; gap: 10px; flex-wrap: wrap; }
@@ -314,6 +318,9 @@ h1, h2, h3 { color: var(--ink); margin: 0; letter-spacing: -0.01em; text-wrap: b
 .big-dot.off { background: var(--red); box-shadow: 0 0 0 6px var(--red-50); }
 .conn-status h2 { font-size: 20px; color: var(--green); }
 .conn-status h2.off { color: var(--red); }
+.big-dot.wait { background: var(--blue); box-shadow: 0 0 0 6px var(--blue-50); animation: breathe 2s ease-in-out infinite; }
+.conn-status h2.wait { color: var(--blue); }
+@keyframes breathe { 50% { box-shadow: 0 0 0 10px var(--blue-50); } }
 .kv { display: grid; gap: 14px; }
 .kv div { display: flex; flex-direction: column; gap: 2px; }
 .kv span { color: var(--muted); font-size: 12.5px; }

@@ -2,7 +2,7 @@
   "use strict";
 
   // ---------- Helpers ----------
-  var KEY = "commandhub-app-v1";
+  var PREFS_KEY = "commandhub-prefs";
   var MIN = 60000, HOUR = 60 * MIN, DAY = 24 * HOUR;
   var DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -15,18 +15,17 @@
     });
   }
   function ic(id, cls) { return '<svg class="' + (cls || "ico") + '" aria-hidden="true"><use href="#' + id + '"/></svg>'; }
-  function uid() { return Math.random().toString(36).slice(2, 10); }
   function dial(p) { return String(p || "").replace(/[^\d+]/g, ""); }
   function telHref(p) { return "tel:" + dial(p); }
   function smsHref(p, body) { return "sms:" + dial(p) + (body ? "?&body=" + encodeURIComponent(body) : ""); }
-  function dayKey(t) { var d = new Date(t); return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate(); }
   function startOfDay(t) { var d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); }
   function clock(t, ampm) {
     var d = new Date(t), h = d.getHours() % 12 || 12, m = ("0" + d.getMinutes()).slice(-2);
     return h + ":" + m + (ampm ? (d.getHours() < 12 ? " AM" : " PM") : "");
   }
   function shortDate(t) { var d = new Date(t); return DAYS[d.getDay()] + ", " + MONTHS[d.getMonth()] + " " + d.getDate(); }
-  function fullDate(t) { var d = new Date(t); return MONTHS[d.getMonth()] + " " + d.getDate() + ", " + d.getFullYear() + " at " + clock(t, true); }
+  function longDate(t) { var d = new Date(t); return MONTHS[d.getMonth()] + " " + d.getDate() + ", " + d.getFullYear(); }
+  function fullDate(t) { return longDate(t) + " at " + clock(t, true); }
   function rel(t) {
     var s = Date.now() - t;
     if (s < MIN) return "just now";
@@ -50,96 +49,46 @@
   };
   function pill(s) { var x = STATUS[s] || STATUS.new; return '<span class="pill ' + x.cls + '">' + x.label + "</span>"; }
 
-  // ---------- Sample data ----------
-  function seed() {
-    var now = Date.now();
-    var rows = [
-      ["John Smith", "(864) 555-0187", "Roof Repair", 2, "new", "Greenville, SC", "I noticed a leak in my roof after the last storm. Can you come out and take a look?"],
-      ["Sarah Miller", "(864) 555-0143", "Roof Replacement", 7, "new", "Simpsonville, SC", "Our roof is about 22 years old and missing shingles. Looking for a replacement quote."],
-      ["James Carter", "(864) 555-0169", "Inspection", 12, "new", "Mauldin, SC", "We're buying a house and need a roof inspection before closing next week."],
-      ["Lisa Brown", "(864) 555-0175", "Roof Repair", 18, "contacted", "Greer, SC", "The flashing around our chimney is pulling away."],
-      ["Robert Davis", "(864) 555-0132", "Roof Replacement", 26, "contacted", "Easley, SC", "Insurance approved a replacement after hail damage. Need someone to schedule."],
-      ["Amanda Wilson", "(864) 555-0108", "Inspection", 33, "new", "Taylors, SC", "Want an inspection after the storm last weekend."],
-      ["Daniel Harris", "(864) 555-0124", "Roof Repair", 41, "appointment", "Spartanburg, SC", "A few shingles blew off. Need them replaced before more rain."],
-      ["Jessica Taylor", "(864) 555-0188", "Roof Replacement", 52, "new", "Anderson, SC", "Looking for quotes on a standing-seam metal roof."],
-      ["Brian Lewis", "(864) 555-0163", "Inspection", 28 * 60, "missed", "Powdersville, SC", "Can someone look at a sagging section over the garage?"],
-      ["Michael Brooks", "(864) 555-0151", "Roof Replacement", 26 * 60, "won", "Greenville, SC", "Need a full tear-off and new architectural shingles."],
-      ["Karen White", "(864) 555-0117", "Gutter Repair", 30 * 60, "won", "Fountain Inn, SC", "Gutters are overflowing and pulling off the fascia."],
-      ["Steven Clark", "(864) 555-0196", "Roof Repair", 50 * 60, "won", "Travelers Rest, SC", "Skylight is leaking into the kitchen."]
-    ];
-    var leads = rows.map(function (r) {
-      var at = now - r[3] * MIN;
-      var lead = {
-        id: uid(), name: r[0], phone: r[1], service: r[2], status: r[4], city: r[5], message: r[6],
-        email: r[0].toLowerCase().replace(/\s+/g, "") + "@email.com", source: "Website Form", receivedAt: at,
-        messages: [], activity: [{ text: "Lead received from Website Form", at: at }], sample: true
-      };
-      var step = Math.min(r[3] * MIN / 3, 3 * HOUR);
-      if (r[4] !== "new" && r[4] !== "missed") lead.activity.push({ text: "Called " + r[1], at: at + step });
-      if (r[4] === "appointment" || r[4] === "won") lead.activity.push({ text: "Status changed to Appointment", at: at + step * 1.5 });
-      if (r[4] === "won") lead.activity.push({ text: "Status changed to Won", at: at + step * 2.5 });
-      if (r[4] === "missed") lead.activity.push({ text: "No contact within 24 hours. Marked as missed.", at: at + DAY });
-      return lead;
-    });
+  // ---------- Per-device preferences ----------
+  var prefs = {};
+  try { prefs = JSON.parse(localStorage.getItem(PREFS_KEY) || "{}") || {}; } catch (e) { prefs = {}; }
+  function savePrefs() { try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch (e) { /* storage unavailable */ } }
 
-    // Earlier leads this week (only counted in the chart), shaped to the example trend
-    var target = [6, 6, 9, 10, 12, 15, 17], baseline = {}, today = startOfDay(now);
-    target.forEach(function (n, i) {
-      var day = today - (6 - i) * DAY;
-      var actual = leads.filter(function (l) { return startOfDay(l.receivedAt) === day; }).length;
-      baseline[dayKey(day)] = Math.max(0, n - actual);
-    });
+  // ---------- Server ----------
+  var state = null;
 
-    var notifications = leads.filter(function (l) { return now - l.receivedAt < HOUR; }).map(function (l, i) {
-      return { id: uid(), leadId: l.id, text: "New lead received", detail: l.name + " • " + l.service, at: l.receivedAt, read: i > 1 };
-    });
-
-    return {
-      v: 1,
-      leads: leads,
-      baseline: baseline,
-      lastWeekTotal: 62,
-      notifications: notifications,
-      settings: {
-        company: "Roofer Pro", owner: "John Carter", email: "john@rooferpro.com", phone: "(864) 555-0123",
-        notifyPhone: "(864) 555-0123", sms: true, email_on: true, sound: true, browser: false, twoStep: false,
-        website: "https://yourwebsite.com", connected: true, connUpdated: now - 2 * MIN
-      },
-      team: [{ name: "John Carter", role: "Owner" }, { name: "Maria Lopez", role: "Office Manager" }],
-      showSampleNotice: true
-    };
+  function api(method, url, body) {
+    var opts = { method: method, credentials: "same-origin", headers: {}, keepalive: method !== "GET" };
+    if (body !== undefined) { opts.headers["Content-Type"] = "application/json"; opts.body = JSON.stringify(body); }
+    return fetch(url, opts).then(function (res) {
+      if (res.status === 401) { location.href = "/login"; throw new Error("Please log in."); }
+      return res.json().catch(function () { return {}; }).then(function (data) {
+        if (!res.ok) throw new Error(data.error || "Something went wrong. Please try again.");
+        return data;
+      });
+    }, function () { throw new Error("Can't reach Command Hub. Check your internet connection."); });
+  }
+  function refresh() {
+    return api("GET", "/api/state").then(function (s) { state = s; render(); return s; });
+  }
+  // Run a change on the server, then reload. Shows the error if it fails.
+  function act(method, url, body, okMsg) {
+    return api(method, url, body).then(function (r) { if (okMsg) toast(okMsg); return refresh().then(function () { return r; }); })
+      .catch(function (e) { toast(e.message); throw e; });
   }
 
-  var state;
-  function load() {
-    try {
-      var raw = localStorage.getItem(KEY);
-      if (raw) { var s = JSON.parse(raw); if (s && s.v === 1 && Array.isArray(s.leads)) return s; }
-    } catch (e) { /* storage unavailable */ }
-    return seed();
-  }
-  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* storage unavailable */ } }
-  state = load();
+  var ui = { route: "", tab: "all", q: "", sel: {}, confirmDelete: false, detailTab: "details", editCompany: false, editPhone: false, open: {}, guide: false };
 
-  var ui = { route: "dashboard", tab: "all", q: "", sel: {}, confirmDelete: false, detailTab: "details", editCompany: false, editPhone: false, open: {}, guide: false };
-
-  function lead(id) { for (var i = 0; i < state.leads.length; i++) if (state.leads[i].id === id) return state.leads[i]; return null; }
+  function lead(id) { if (!state) return null; for (var i = 0; i < state.leads.length; i++) if (state.leads[i].id === id) return state.leads[i]; return null; }
   function sorted() { return state.leads.slice().sort(function (a, b) { return b.receivedAt - a.receivedAt; }); }
   function count(st) { return state.leads.filter(function (l) { return l.status === st; }).length; }
   function lastLead() { return sorted()[0]; }
   function unread() { return state.notifications.filter(function (n) { return !n.read; }).length; }
+  function firstName(s) { return String(s || "").split(" ")[0]; }
 
-  function logActivity(l, text) { l.activity.push({ text: text, at: Date.now() }); }
-  function setStatus(l, st) {
-    if (!l || l.status === st) return;
-    l.status = st;
-    logActivity(l, "Status changed to " + STATUS[st].label);
-  }
-  function markContacted(l, how) {
+  function logContact(l, how, message) {
     if (!l) return;
-    logActivity(l, how);
-    if (l.status === "new" || l.status === "missed") { l.status = "contacted"; logActivity(l, "Status changed to Contacted"); }
-    save();
+    api("POST", "/api/leads/" + l.id + "/contact", { how: how, message: message }).then(refresh).catch(function (e) { toast(e.message); });
   }
 
   // ---------- Toast ----------
@@ -149,43 +98,10 @@
     t.textContent = msg; t.hidden = false;
     t.style.animation = "none"; void t.offsetWidth; t.style.animation = "";
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () { t.hidden = true; }, 2800);
+    toastTimer = setTimeout(function () { t.hidden = true; }, 3200);
   }
 
-  // ---------- New leads + instant alert ----------
-  var SAMPLES = [
-    ["Emily Johnson", "(864) 555-0142", "Storm Damage", "Greenville, SC", "Tree limb came down on the roof last night. Need someone ASAP."],
-    ["Marcus Lee", "(864) 555-0193", "Roof Replacement", "Greer, SC", "Looking for a quote on a full replacement this fall."],
-    ["Olivia Martinez", "(864) 555-0128", "Leak Repair", "Simpsonville, SC", "Water stain on the bedroom ceiling keeps growing."],
-    ["David Wilson", "(864) 555-0176", "Inspection", "Easley, SC", "Need an inspection for an insurance claim."],
-    ["Ava Thompson", "(864) 555-0111", "Gutter Repair", "Mauldin, SC", "Gutter on the back of the house is hanging loose."]
-  ];
-  var sampleIdx = 0;
-
-  function addLead(data, isTest) {
-    var now = Date.now();
-    var l = {
-      id: uid(), name: data.name, phone: data.phone, service: data.service || "Roof Repair",
-      email: data.email || "", city: data.city || "", message: data.message || "",
-      source: isTest ? "Test Lead" : "Website Form", status: "new", receivedAt: now,
-      messages: [], activity: [{ text: "Lead received from " + (isTest ? "a test submission" : "Website Form"), at: now }]
-    };
-    state.leads.push(l);
-    state.notifications.unshift({ id: uid(), leadId: l.id, text: "New lead received", detail: l.name + " • " + l.service, at: now, read: false });
-    state.notifications = state.notifications.slice(0, 50);
-    state.settings.connUpdated = now;
-    save();
-    render();
-    showAlert(l);
-    if (state.settings.sound) chime();
-    browserNotify(l);
-    return l;
-  }
-  function testLead() {
-    var s = SAMPLES[sampleIdx++ % SAMPLES.length];
-    addLead({ name: s[0], phone: s[1], service: s[2], city: s[3], message: s[4], email: s[0].toLowerCase().replace(/\s+/g, "") + "@email.com" }, true);
-  }
-
+  // ---------- Instant alert ----------
   var alertLead = null, alertTimer;
   function showAlert(l) {
     alertLead = l;
@@ -193,24 +109,24 @@
     $("#alert-time").textContent = clock(now);
     $("#alert-date").textContent = shortDate(now);
     $("#alert-name").textContent = l.name;
-    $("#alert-service").textContent = l.service;
-    $("#alert-phone").textContent = l.phone;
+    $("#alert-service").textContent = l.service || "New request";
+    $("#alert-phone").textContent = l.phone || "";
     $("#alert-call").href = telHref(l.phone);
     $("#alert-call").setAttribute("data-id", l.id);
     $("#alert-text").href = smsHref(l.phone, textTemplate(l));
     $("#alert-text").setAttribute("data-id", l.id);
     var tick = function () {
       var s = Math.max(0, Math.round((Date.now() - l.receivedAt) / 1000));
-      $("#alert-ago").textContent = s < 3 ? "Received just now" : "Received " + s + " seconds ago";
+      $("#alert-ago").textContent = s < 3 ? "Received just now" : s < 120 ? "Received " + s + " seconds ago" : "Received " + rel(l.receivedAt);
     };
     tick(); clearInterval(alertTimer); alertTimer = setInterval(tick, 1000);
     $("#alert").hidden = false;
   }
   function hideAlert() { $("#alert").hidden = true; clearInterval(alertTimer); }
   function textTemplate(l) {
-    var first = String(l.name).split(" ")[0];
-    return "Hi " + first + ", this is " + state.settings.owner.split(" ")[0] + " with " + state.settings.company +
-      ". Thanks for reaching out about your " + String(l.service).toLowerCase() + ". When is a good time to come take a look?";
+    var s = state ? state.settings : { owner: "", company: "" };
+    return "Hi " + firstName(l.name) + ", this is " + firstName(s.owner) + " with " + s.company +
+      ". Thanks for reaching out" + (l.service ? " about your " + String(l.service).toLowerCase() : "") + ". When is a good time to come take a look?";
   }
 
   var audioCtx;
@@ -227,8 +143,9 @@
   }
   function browserNotify(l) {
     try {
-      if (state.settings.browser && "Notification" in window && Notification.permission === "granted") {
-        new Notification("New Lead: " + l.name, { body: l.service + " • " + l.phone });
+      if (prefs.browser && "Notification" in window && Notification.permission === "granted") {
+        var n = new Notification("New Lead: " + l.name, { body: [l.service, l.phone].filter(Boolean).join(" • ") });
+        n.onclick = function () { window.focus(); location.hash = "lead-" + l.id; };
       }
     } catch (e) { /* notifications unavailable */ }
   }
@@ -239,14 +156,14 @@
     return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
   }
 
-  function sampleNotice() {
-    if (!state.showSampleNotice) return "";
-    return '<div class="notice">' + ic("i-bolt") + '<span>You\'re looking at sample leads. Tap <strong>Test Lead</strong> to see an instant alert, or reset the sample data any time in Settings.</span>' +
+  function welcomeNotice() {
+    if (prefs.hideWelcome || state.lastWebsiteLeadAt) return "";
+    return '<div class="notice">' + ic("i-bolt") + '<span>Welcome to Command Hub! <a class="link" href="#connection">Connect your website form</a> to start getting leads, or tap <strong>Test Lead</strong> to see an instant alert.</span>' +
       '<button type="button" data-action="hide-notice" aria-label="Dismiss">' + ic("i-x") + "</button></div>";
   }
 
   function viewDashboard() {
-    var s = state.settings, last = lastLead();
+    var s = state.settings, last = lastLead(), connected = !!state.lastWebsiteLeadAt;
     var newC = count("new"), contacted = count("contacted") + count("appointment"), won = count("won"), missed = count("missed");
     var stat = function (tab, icon, tone, n, label, sub) {
       return '<button type="button" class="card stat" data-action="goto-tab" data-tab="' + tab + '">' +
@@ -255,53 +172,60 @@
     };
     var recent = sorted().slice(0, 5).map(function (l) {
       return '<li><a href="#lead-' + l.id + '"><span class="avatar">' + ic("i-user") + '</span><span class="who"><strong>' + esc(l.name) +
-        "</strong><span>" + esc(l.service) + '</span></span><span class="when">' + relEl(l.receivedAt) + "</span>" + pill(l.status) + ic("i-chev", "ico chev") + "</a></li>";
+        "</strong><span>" + esc(l.service || l.source) + '</span></span><span class="when">' + relEl(l.receivedAt) + "</span>" + pill(l.status) + ic("i-chev", "ico chev") + "</a></li>";
     }).join("");
 
-    return sampleNotice() +
-      '<div class="dash-head"><div><h1>' + greeting() + ", " + esc(s.owner.split(" ")[0]) + '.</h1><p>Here\'s what\'s happening with your leads today.</p></div>' +
-      '<a href="#connection" class="conn-chip' + (s.connected ? "" : " off") + '"><span class="ok">' + ic(s.connected ? "i-check" : "i-x") + "</span><div><strong>" +
-      (s.connected ? "Website Connected" : "Website Not Connected") + "</strong><span>" +
-      (s.connected ? "Your website is actively sending leads." : "Connect your site to start receiving leads.") + "</span></div>" + ic("i-chev") + "</a></div>" +
+    return welcomeNotice() +
+      '<div class="dash-head"><div><h1>' + greeting() + ", " + esc(firstName(s.owner)) + '.</h1><p>Here\'s what\'s happening with your leads today.</p></div>' +
+      '<a href="#connection" class="conn-chip' + (connected ? "" : " wait") + '"><span class="ok">' + ic(connected ? "i-check" : "i-globe") + "</span><div><strong>" +
+      (connected ? "Website Connected" : "Connect Your Website") + "</strong><span>" +
+      (connected ? "Last website lead " + relEl(state.lastWebsiteLeadAt) + "." : "Add your form to start receiving leads.") + "</span></div>" + ic("i-chev") + "</a></div>" +
       '<div class="stats">' +
       stat("new", "i-bell", "tone-blue", newC, "New Leads", "Need your attention") +
       stat("contacted", "i-phone", "tone-teal", contacted, "Contacted", "Called or texted") +
       stat("won", "i-check", "tone-green", won, "Won / Closed", "Jobs completed") +
-      stat("missed", "i-x", "tone-red", missed, "Missed", "Did not get in touch") +
+      stat("missed", "i-x", "tone-red", missed, "Missed", "Not contacted within 24 hours") +
       "</div>" +
       '<div class="dash-grid">' +
       '<section class="card card-pad"><div class="card-head"><h2>Recent Lead Activity</h2><a href="#leads" class="link" data-action="goto-tab" data-tab="all">View All</a></div>' +
-      (recent ? '<ul class="recent">' + recent + "</ul>" : '<div class="empty"><strong>No leads yet</strong>New website leads show up here the moment they arrive.</div>') +
+      (recent ? '<ul class="recent">' + recent + "</ul>" : '<div class="empty"><strong>No leads yet</strong>New website leads show up here the moment they arrive.<br/><br/><button type="button" class="btn btn-primary btn-sm" data-action="test-lead">' + ic("i-bolt") + "Send a Test Lead</button></div>") +
       "</section>" +
       '<div class="dash-right">' +
       '<section class="card card-pad">' + chartCard() + "</section>" +
       '<section class="card card-pad"><div class="card-head"><h2>Quick Actions</h2></div><div class="quick">' +
       '<a href="#leads" class="btn btn-primary" data-action="goto-tab" data-tab="all">View All Leads</a>' +
       '<button type="button" class="btn btn-ghost" data-action="test-lead">' + ic("i-chat") + "Test Lead</button>" +
-      (last ? '<a class="btn btn-call" href="' + telHref(last.phone) + '" data-action="call" data-id="' + last.id + '">' + ic("i-call") + "Call newest lead</a>" : "") +
+      (last && last.phone ? '<a class="btn btn-call" href="' + telHref(last.phone) + '" data-action="call" data-id="' + last.id + '">' + ic("i-call") + "Call newest lead</a>" : "") +
       '<a href="#connection" class="btn btn-ghost">' + ic("i-globe") + "Website Setup</a>" +
       "</div></section></div></div>";
   }
 
+  function countBetween(from, to) {
+    return state.leads.filter(function (l) { return l.receivedAt >= from && l.receivedAt < to; }).length;
+  }
   function weekData() {
     var today = startOfDay(Date.now()), out = [];
     for (var i = 6; i >= 0; i--) {
       var day = today - i * DAY;
-      var n = (state.baseline[dayKey(day)] || 0) + state.leads.filter(function (l) { return startOfDay(l.receivedAt) === day; }).length;
-      out.push({ label: DAYS[new Date(day).getDay()], n: n });
+      out.push({ label: DAYS[new Date(day).getDay()], n: countBetween(day, day + DAY) });
     }
     return out;
   }
   function chartCard() {
     var data = weekData(), total = data.reduce(function (a, d) { return a + d.n; }, 0);
-    var pct = state.lastWeekTotal ? Math.round((total - state.lastWeekTotal) / state.lastWeekTotal * 100) : 0;
+    var today = startOfDay(Date.now()), lastWeek = countBetween(today - 13 * DAY, today - 6 * DAY);
+    var trend = "";
+    if (lastWeek) {
+      var pct = Math.round((total - lastWeek) / lastWeek * 100);
+      trend = '<span class="trend' + (pct < 0 ? " down" : "") + '">' + (pct >= 0 ? "+" : "") + pct + "% " + ic("i-arrow-ur") + "</span>";
+    }
     var W = 340, H = 150, L = 26, R = 20, T = 14, B = 22;
-    var max = Math.max(5, Math.ceil(Math.max.apply(null, data.map(function (d) { return d.n; })) / 5) * 5);
+    var max = Math.max(4, Math.ceil(Math.max.apply(null, data.map(function (d) { return d.n; })) / 4) * 4); // 4 even, whole-number steps
     var x = function (i) { return L + i * (W - L - R) / 6; };
     var y = function (v) { return T + (H - T - B) * (1 - v / max); };
     var ticks = "", step = max / 4;
     for (var k = 0; k <= 4; k++) {
-      var v = Math.round(k * step);
+      var v = k * step;
       ticks += '<line class="grid" x1="' + L + '" x2="' + (W - R) + '" y1="' + y(v) + '" y2="' + y(v) + '"/>' +
         '<text x="' + (L - 6) + '" y="' + (y(v) + 3) + '" text-anchor="end">' + v + "</text>";
     }
@@ -312,11 +236,11 @@
         '<text x="' + x(i) + '" y="' + (H - 6) + '" text-anchor="middle">' + (i === 6 ? "Today" : d.label) + "</text>";
     }).join("");
     var endLabel = '<text class="val" x="' + (x(6) - 8) + '" y="' + (y(data[6].n) - 9) + '" text-anchor="end">' + data[6].n + "</text>";
-    return '<div class="card-head"><h2>Leads This Week</h2><span class="trend' + (pct < 0 ? " down" : "") + '">' + (pct >= 0 ? "+" : "") + pct + "% " + ic("i-arrow-ur") + "</span></div>" +
+    return '<div class="card-head"><h2>Leads This Week</h2>' + trend + "</div>" +
       '<svg class="chart" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="' + total + ' leads in the last 7 days">' +
       '<defs><linearGradient id="area" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#1463ff" stop-opacity=".22"/><stop offset="1" stop-color="#1463ff" stop-opacity="0"/></linearGradient></defs>' +
       ticks + '<path d="' + area + '" fill="url(#area)"/><polyline class="ln" points="' + pts.join(" ") + '"/>' + dots + endLabel + "</svg>" +
-      '<p class="hint">' + total + " leads in the last 7 days, compared with " + state.lastWeekTotal + " the week before.</p>";
+      '<p class="hint">' + total + " lead" + (total === 1 ? "" : "s") + " in the last 7 days" + (lastWeek ? ", compared with " + lastWeek + " the week before." : ".") + "</p>";
   }
 
   var TABS = [["all", "All"], ["new", "New"], ["contacted", "Contacted"], ["appointment", "Appointments"], ["won", "Won"], ["missed", "Missed"], ["lost", "Lost"]];
@@ -356,15 +280,21 @@
     var rows = list.map(function (l) {
       return '<div class="lt-row' + (ui.sel[l.id] ? " sel" : "") + '" data-open="' + l.id + '">' +
         '<input type="checkbox" class="check" data-action="sel" data-id="' + l.id + '" aria-label="Select ' + esc(l.name) + '"' + (ui.sel[l.id] ? " checked" : "") + "/>" +
-        '<div class="lt-cust"><span class="avatar">' + ic("i-user") + '</span><span class="who"><strong>' + esc(l.name) + '</strong><span class="num">' + esc(l.phone) + "</span></span></div>" +
-        '<span class="lt-cell lt-svc">' + esc(l.service) + "</span>" +
+        '<div class="lt-cust"><span class="avatar">' + ic("i-user") + '</span><span class="who"><strong>' + esc(l.name) + '</strong><span class="num">' + esc(l.phone || l.email) + "</span></span></div>" +
+        '<span class="lt-cell lt-svc">' + esc(l.service || "—") + "</span>" +
         '<span class="lt-cell lt-source">' + esc(l.source) + "</span>" +
         '<span class="lt-cell lt-when">' + relEl(l.receivedAt) + "</span>" +
         '<span class="lt-status">' + pill(l.status) + "</span>" +
-        '<div class="lt-actions"><a class="btn btn-call btn-sm" href="' + telHref(l.phone) + '" data-action="call" data-id="' + l.id + '">' + ic("i-call") + "Call</a>" +
-        '<a class="btn btn-primary btn-sm" href="' + smsHref(l.phone, textTemplate(l)) + '" data-action="text" data-id="' + l.id + '">' + ic("i-chat") + "Text</a>" + ic("i-chev") + "</div></div>";
+        '<div class="lt-actions">' + contactButtons(l, "btn-sm") + ic("i-chev") + "</div></div>";
     }).join("");
     return bulk + head + '<div class="lt-body">' + rows + "</div>";
+  }
+  function contactButtons(l, size) {
+    if (l.phone) {
+      return '<a class="btn btn-call ' + size + '" href="' + telHref(l.phone) + '" data-action="call" data-id="' + l.id + '">' + ic("i-call") + "Call</a>" +
+        '<a class="btn btn-primary ' + size + '" href="' + smsHref(l.phone, textTemplate(l)) + '" data-action="text" data-id="' + l.id + '">' + ic("i-chat") + "Text</a>";
+    }
+    return '<a class="btn btn-primary ' + size + '" href="mailto:' + esc(l.email) + '">' + ic("i-mail") + "Email</a>";
   }
 
   function viewLead(id) {
@@ -378,17 +308,18 @@
       var thread = l.messages.map(function (m) {
         return '<div class="bubble ' + (m.from === "you" ? "you" : "them") + '">' + esc(m.text) + "<small>" + (m.from === "you" ? "Opened in Messages • " : "") + rel(m.at) + "</small></div>";
       }).join("");
-      body = (l.message ? '<div class="thread"><div class="bubble them">' + esc(l.message) + "<small>Website form • " + rel(l.receivedAt) + "</small></div>" + thread + "</div>" : '<div class="thread">' + thread + "</div>") +
-        '<form id="msg-form" data-id="' + l.id + '"><div class="field"><label for="msg-body">Text message</label><textarea id="msg-body" class="textarea">' + esc(textTemplate(l)) + "</textarea></div>" +
-        '<div class="form-actions" style="margin-top:10px"><button type="submit" class="btn btn-primary">' + ic("i-chat") + "Text " + esc(l.name.split(" ")[0]) + "</button></div>" +
-        '<p class="hint">Opens your phone\'s Messages app with this text ready to send to ' + esc(l.phone) + ".</p></form>";
+      body = '<div class="thread">' + (l.message ? '<div class="bubble them">' + esc(l.message) + "<small>Website form • " + rel(l.receivedAt) + "</small></div>" : "") + thread + "</div>" +
+        (l.phone ? '<form id="msg-form" data-id="' + l.id + '"><div class="field"><label for="msg-body">Text message</label><textarea id="msg-body" class="textarea">' + esc(textTemplate(l)) + "</textarea></div>" +
+          '<div class="form-actions" style="margin-top:10px"><button type="submit" class="btn btn-primary">' + ic("i-chat") + "Text " + esc(firstName(l.name)) + "</button></div>" +
+          '<p class="hint">Opens your phone\'s Messages app with this text ready to send to ' + esc(l.phone) + ".</p></form>"
+          : '<p class="hint">This lead didn\'t leave a phone number. Reach them at ' + esc(l.email) + ".</p>");
     } else if (ui.detailTab === "activity") {
       body = '<ul class="timeline">' + l.activity.slice().reverse().map(function (a) {
-        return "<li>" + esc(a.text) + "<small>" + fullDate(a.at) + "</small></li>";
+        return "<li>" + esc(a.text) + (a.note ? ": " + esc(a.note) : "") + "<small>" + fullDate(a.at) + "</small></li>";
       }).join("") + "</ul>";
     } else {
       body = '<h3 class="section-title">Form Submission Details</h3><dl class="dl">' +
-        "<dt>Service Requested</dt><dd>" + esc(l.service) + "</dd>" +
+        "<dt>Service Requested</dt><dd>" + (l.service ? esc(l.service) : '<span class="muted">Not given</span>') + "</dd>" +
         "<dt>Message</dt><dd>" + (l.message ? '<div class="msg-box">' + esc(l.message) + "</div>" : '<span class="muted">No message</span>') + "</dd>" +
         "<dt>Source</dt><dd>" + esc(l.source) + "</dd>" +
         "<dt>Received</dt><dd>" + fullDate(l.receivedAt) + "</dd></dl>" +
@@ -411,28 +342,27 @@
       '<div class="detail-grid"><div class="stack">' +
       '<section class="card card-pad"><div class="profile"><span class="avatar">' + ic("i-user") + "</span>" +
       '<div class="profile-info"><h1>' + esc(l.name) + " " + pill(l.status) + "</h1>" +
-      '<ul class="contact-list"><li>' + ic("i-phone") + '<span class="num">' + esc(l.phone) + "</span></li>" +
+      '<ul class="contact-list">' + (l.phone ? "<li>" + ic("i-phone") + '<span class="num">' + esc(l.phone) + "</span></li>" : "") +
       (l.email ? "<li>" + ic("i-mail") + esc(l.email) + "</li>" : "") +
       (l.city ? "<li>" + ic("i-pin") + esc(l.city) + "</li>" : "") + "</ul></div>" +
-      '<div class="profile-cta"><a class="btn btn-call" href="' + telHref(l.phone) + '" data-action="call" data-id="' + l.id + '">' + ic("i-call") + "Call</a>" +
-      '<a class="btn btn-primary" href="' + smsHref(l.phone, textTemplate(l)) + '" data-action="text" data-id="' + l.id + '">' + ic("i-chat") + "Text</a></div></div></section>" +
+      '<div class="profile-cta">' + contactButtons(l, "") + "</div></div></section>" +
       '<section class="card card-pad"><div class="tabs" style="margin-bottom:18px">' + tabs + "</div>" + body + "</section></div>" +
       '<div class="stack"><section class="card card-pad"><h3 class="section-title">Lead Status</h3><div class="stepper">' +
       stepBtn("new", "New") + sep + stepBtn("contacted", "Contacted") + sep + stepBtn("appointment", "Appointment") + sep + stepBtn("won", "Won") + stepBtn("lost", "Lost") +
-      "</div>" + (l.status === "missed" ? '<p class="hint">This lead was marked as missed. Call or text to win it back.</p>' : "") + "</section>" +
+      "</div>" + (l.status === "missed" ? '<p class="hint">Nobody reached this lead within 24 hours. Call or text to win it back.</p>' : "") + "</section>" +
       (notes.length ? '<section class="card card-pad"><h3 class="section-title">Notes</h3><ul class="timeline">' + notes.slice().reverse().map(function (a) {
         return "<li>" + esc(a.note) + "<small>" + fullDate(a.at) + "</small></li>";
       }).join("") + "</ul></section>" : "") +
       '<section class="card card-pad"><h3 class="section-title">Quick Facts</h3><div class="kv">' +
       "<div><span>Time since lead came in</span><strong>" + relEl(l.receivedAt) + "</strong></div>" +
-      "<div><span>Contact attempts</span><strong>" + l.activity.filter(function (a) { return /^(Called|Texted)/.test(a.text); }).length + "</strong></div>" +
-      '</div><div class="form-actions" style="margin-top:16px"><button type="button" class="btn btn-ghost btn-sm" data-action="delete-lead" data-id="' + l.id + '">' + (ui.confirmDelete ? "Tap again to delete this lead" : "Delete lead") + "</button></div></section>" +
+      "<div><span>Contact attempts</span><strong>" + l.activity.filter(function (a) { return /^(Called|Texted) /.test(a.text); }).length + "</strong></div>" +
+      '</div><div class="form-actions" style="margin-top:16px"><button type="button" class="btn ' + (ui.confirmDelete ? "btn-danger" : "btn-ghost") + ' btn-sm" data-action="delete-lead" data-id="' + l.id + '">' + (ui.confirmDelete ? "Tap again to delete this lead" : "Delete lead") + "</button></div></section>" +
       "</div></div>";
   }
 
   function viewNotifications() {
     var items = state.notifications.map(function (n) {
-      var l = lead(n.leadId);
+      var l = n.leadId && lead(n.leadId);
       return '<li class="' + (n.read ? "" : "unread") + '"><a href="' + (l ? "#lead-" + n.leadId : "#leads") + '" data-action="read-notif" data-nid="' + n.id + '">' +
         '<span class="avatar">' + ic("i-bell") + '</span><span class="who"><strong>' + esc(n.text) + "</strong><span>" + esc(n.detail) + "</span></span>" +
         '<span class="muted" style="font-size:12px;white-space:nowrap">' + relEl(n.at) + "</span>" + ic("i-chev") + "</a></li>";
@@ -443,42 +373,46 @@
       '<section class="card">' + (items ? '<ul class="notif-list">' + items + "</ul>" : '<div class="empty"><strong>No notifications yet</strong>You\'ll get an alert here the moment a lead comes in.</div>') + "</section>";
   }
 
-  var SNIPPET = [
-    '<form action="YOUR-COMMAND-HUB-FORM-ADDRESS" method="POST">',
-    '  <input name="name" placeholder="Name" required>',
-    '  <input name="phone" type="tel" placeholder="Phone" required>',
-    '  <input name="email" type="email" placeholder="Email">',
-    '  <input name="service" placeholder="Service Needed">',
-    '  <textarea name="message" placeholder="How can we help?"></textarea>',
-    '  <button type="submit">Submit</button>',
-    "</form>"
-  ].join("\n");
+  function snippet() {
+    return [
+      '<form action="' + state.formUrl + '" method="POST">',
+      '  <input name="name" placeholder="Name" required>',
+      '  <input name="phone" type="tel" placeholder="Phone" required>',
+      '  <input name="email" type="email" placeholder="Email">',
+      '  <input name="service" placeholder="Service Needed">',
+      '  <textarea name="message" placeholder="How can we help?"></textarea>',
+      '  <input type="text" name="_gotcha" style="display:none" tabindex="-1" autocomplete="off">',
+      '  <button type="submit">Submit</button>',
+      "</form>"
+    ].join("\n");
+  }
 
   function viewConnection() {
-    var s = state.settings, last = lastLead();
+    var s = state.settings, connected = !!state.lastWebsiteLeadAt;
+    var lastSite = connected ? state.leads.filter(function (l) { return l.source === "Website Form"; })[0] : null;
     return '<div class="page-head"><div><h1>Website Connection</h1><p>Connect your website so we can receive and immediately alert you of new leads.</p></div></div>' +
       '<div class="conn-grid"><div class="stack">' +
-      '<section class="card card-pad"><div class="conn-status"><span class="big-dot' + (s.connected ? "" : " off") + '"></span><div style="flex:1">' +
-      '<h2 class="' + (s.connected ? "" : "off") + '">' + (s.connected ? "Connected" : "Not Connected") + "</h2>" +
-      '<p class="muted" style="margin:4px 0 0">' + (s.connected ? (last ? "Last lead received: " + relEl(last.receivedAt) : "Waiting for your first lead.") : "Leads from your website are paused.") + "</p></div>" +
-      (last && s.connected ? '<a class="link" href="#lead-' + last.id + '">View Lead</a>' : "") + "</div>" +
-      '<div class="form-actions" style="margin-top:16px"><button type="button" class="btn btn-ghost btn-sm" data-action="toggle-conn">' + (s.connected ? "Pause connection" : "Reconnect") + "</button>" +
-      '<button type="button" class="btn btn-primary btn-sm" data-action="test-lead">' + ic("i-bolt") + "Send a test lead</button></div></section>" +
+      '<section class="card card-pad"><div class="conn-status"><span class="big-dot' + (connected ? "" : " wait") + '"></span><div style="flex:1">' +
+      '<h2 class="' + (connected ? "" : "wait") + '">' + (connected ? "Connected" : "Waiting for your first lead") + "</h2>" +
+      '<p class="muted" style="margin:4px 0 0">' + (connected ? "Last lead received: " + relEl(state.lastWebsiteLeadAt) : "Add the form below to your website. This turns green when the first lead arrives.") + "</p></div>" +
+      (lastSite ? '<a class="link" href="#lead-' + lastSite.id + '">View Lead</a>' : "") + "</div>" +
+      '<div class="form-actions" style="margin-top:16px"><button type="button" class="btn btn-primary btn-sm" data-action="test-lead">' + ic("i-bolt") + "Send a test lead</button></div></section>" +
       '<section class="card card-pad"><h3 class="section-title">Connection Details</h3><form id="site-form" class="kv">' +
       '<div class="field"><label for="site-url">Website URL</label><input id="site-url" class="input" type="url" value="' + esc(s.website) + '" placeholder="https://yourwebsite.com"/></div>' +
-      '<div><span>Form Status</span><strong class="' + (s.connected ? "ok" : "") + '">' + (s.connected ? "Active" : "Paused") + "</strong></div>" +
-      "<div><span>Last Updated</span><strong>" + fullDate(s.connUpdated) + "</strong></div>" +
+      '<div class="field"><label for="form-url">Your form address</label><div class="inline-form"><input id="form-url" class="input num" readonly value="' + esc(state.formUrl) + '"/>' +
+      '<button type="button" class="btn btn-ghost btn-sm" data-action="copy" data-copy="url">' + ic("i-copy") + "Copy</button></div></div>" +
+      '<div><span>Form Status</span><strong class="ok">Active</strong></div>' +
       '<div class="form-actions"><button type="submit" class="btn btn-ghost btn-sm">Save website</button></div></form></section></div>' +
       '<div class="stack"><section class="card card-pad"><h3 class="section-title">Need to set up your website?</h3>' +
       '<p class="muted" style="margin:0 0 14px">Follow our simple guide to connect your form.</p>' +
       '<button type="button" class="btn btn-outline" data-action="guide" aria-expanded="' + ui.guide + '">' + (ui.guide ? "Hide Setup Guide" : "View Setup Guide") + "</button>" +
       (ui.guide ? '<div style="margin-top:18px"><ol class="steps-list"><li>Open the page on your website that has your contact or quote form.</li>' +
         "<li>Replace the form with the code below, or send it to whoever manages your site.</li>" +
-        "<li>Your personal form address replaces <strong>YOUR-COMMAND-HUB-FORM-ADDRESS</strong> once your account is live.</li>" +
-        "<li>Submit the form once yourself. You should get an alert within seconds.</li></ol>" +
-        '<div class="code-wrap"><pre class="code" id="snippet">' + esc(SNIPPET) + '</pre><button type="button" class="btn btn-ghost btn-sm" data-action="copy">' + ic("i-copy") + "Copy</button></div></div>" : "") +
+        "<li>Already have a form you like? Point its action (where it submits) to your form address. Fields named <strong>name</strong>, <strong>phone</strong>, <strong>email</strong>, <strong>service</strong> and <strong>message</strong> are picked up automatically.</li>" +
+        "<li>Submit the form once yourself. The alert should arrive within seconds.</li></ol>" +
+        '<div class="code-wrap"><pre class="code" id="snippet">' + esc(snippet()) + '</pre><button type="button" class="btn btn-ghost btn-sm" data-action="copy" data-copy="snippet">' + ic("i-copy") + "Copy</button></div></div>" : "") +
       "</section>" +
-      '<section class="card card-pad"><h3 class="section-title">Try it like a customer</h3><p class="muted" style="margin:0 0 14px">Fill out this sample website form to see the lead land in Command Hub.</p>' +
+      '<section class="card card-pad"><h3 class="section-title">Try it like a customer</h3><p class="muted" style="margin:0 0 14px">This form sends to your real form address, exactly like your website will.</p>' +
       '<form id="demo-form" class="demo-site"><h3>' + esc(s.company) + ' — Request a Free Estimate</h3><div class="form-grid">' +
       '<div class="field"><label for="df-name">Name</label><input id="df-name" class="input" required placeholder="Jane Doe"/></div>' +
       '<div class="field"><label for="df-phone">Phone</label><input id="df-phone" class="input" type="tel" required placeholder="(864) 555-0100"/></div>' +
@@ -490,9 +424,9 @@
 
   function viewSettings() {
     var s = state.settings;
-    var toggle = function (key, icon, label, sub) {
+    var toggle = function (key, icon, label, sub, on) {
       return '<div class="toggle-row">' + ic(icon) + '<span class="who"><strong>' + label + "</strong><span>" + sub + "</span></span>" +
-        '<button type="button" class="switch" role="switch" aria-label="' + label + '" aria-checked="' + !!s[key] + '" data-action="switch" data-key="' + key + '"></button></div>';
+        '<button type="button" class="switch" role="switch" aria-label="' + label + '" aria-checked="' + !!on + '" data-action="switch" data-key="' + key + '"></button></div>';
     };
     var menu = function (key, icon, label, sub, panel) {
       var open = !!ui.open[key];
@@ -503,45 +437,54 @@
       '<form id="company-form" class="form-grid">' +
       '<div class="field"><label for="c-company">Company</label><input id="c-company" class="input" required value="' + esc(s.company) + '"/></div>' +
       '<div class="field"><label for="c-owner">Your name</label><input id="c-owner" class="input" required value="' + esc(s.owner) + '"/></div>' +
-      '<div class="field"><label for="c-email">Email</label><input id="c-email" class="input" type="email" value="' + esc(s.email) + '"/></div>' +
-      '<div class="field"><label for="c-phone">Phone</label><input id="c-phone" class="input" type="tel" value="' + esc(s.phone) + '"/></div>' +
+      '<div class="field"><label for="c-email">Email for lead alerts</label><input id="c-email" class="input" type="email" required value="' + esc(s.email) + '"/></div>' +
+      '<div class="field"><label for="c-phone">Business phone</label><input id="c-phone" class="input" type="tel" value="' + esc(s.phone) + '"/></div>' +
       '<div class="form-actions span-2"><button type="submit" class="btn btn-primary btn-sm">Save</button><button type="button" class="btn btn-ghost btn-sm" data-action="edit-company">Cancel</button></div></form>' :
       '<div class="company"><span class="avatar">' + ic("i-user") + '</span><dl><dd><strong>' + esc(s.company) + "</strong></dd><dd>" + esc(s.owner) + "</dd><dd>" + esc(s.email) + '</dd><dd class="num">' + esc(s.phone) + "</dd></dl></div>";
 
     var phoneRow = ui.editPhone ?
       '<form id="phone-form" class="inline-form" style="padding:12px 0;border-top:1px solid var(--line)"><input id="notify-phone" class="input" type="tel" required value="' + esc(s.notifyPhone) + '" aria-label="Notification phone number"/><button type="submit" class="btn btn-primary btn-sm">Save</button></form>' :
-      '<div class="toggle-row">' + ic("i-phone") + '<span class="who"><strong>Notification Phone Number</strong><span class="num">' + esc(s.notifyPhone) + '</span></span><button type="button" class="link" data-action="edit-phone">Edit</button></div>';
+      '<div class="toggle-row">' + ic("i-phone") + '<span class="who"><strong>Notification Phone Number</strong><span class="num">' + esc(s.notifyPhone || "Not set") + '</span></span><button type="button" class="link" data-action="edit-phone">Edit</button></div>';
+
+    var setupNote = [];
+    if (s.sms && !state.smsReady) setupNote.push("text alerts");
+    if (s.email_on && !state.emailReady) setupNote.push("email alerts");
+    var trialLeft = Math.ceil((state.trialEnds - Date.now()) / DAY);
 
     return '<div class="page-head"><div><h1>Settings</h1><p>Manage your account, notifications, and more.</p></div></div>' +
       '<div class="settings-grid"><div class="stack">' +
       '<section class="card card-pad"><div class="card-head"><h2>Company Information</h2>' + (ui.editCompany ? "" : '<button type="button" class="link" data-action="edit-company">Edit</button>') + "</div>" + company + "</section>" +
       '<section class="card card-pad"><div class="card-head"><h2>Notifications</h2></div>' +
-      toggle("sms", "i-chat", "SMS Notifications", "Text me when a new lead comes in") +
-      toggle("email_on", "i-mail", "Email Notifications", "Email me a copy of every lead") +
-      toggle("sound", "i-bell", "New Lead Alert Sound", "Play a chime with the alert") +
-      toggle("browser", "i-bolt", "Browser Alerts", "Pop-up alerts from this browser") +
-      phoneRow + '<p class="hint">Text and email alerts go out once your website is connected to your live account.</p></section></div>' +
+      toggle("sms", "i-chat", "SMS Notifications", "Text me when a new lead comes in", s.sms) +
+      toggle("email_on", "i-mail", "Email Notifications", "Email me a copy of every lead", s.email_on) +
+      toggle("sound", "i-bell", "New Lead Alert Sound", "Play a chime with the alert", s.sound) +
+      toggle("browser", "i-bolt", "Browser Alerts", "Pop-up alerts on this device", prefs.browser) +
+      phoneRow +
+      (setupNote.length ? '<p class="hint">Your ' + setupNote.join(" and ") + " will start once the server's messaging service is set up. Until then, alerts appear here in the app.</p>" : "") +
+      "</section></div>" +
       '<section class="card card-pad">' +
       menu("website", "i-globe", "Website Connection", "Manage your website integration", function () {
-        return '<p class="muted" style="margin:0 0 10px">' + (s.connected ? "Connected to " + esc(s.website) : "Not connected") + '</p><a href="#connection" class="btn btn-ghost btn-sm">Open Website Connection</a>';
+        return '<p class="muted" style="margin:0 0 10px">' + (state.lastWebsiteLeadAt ? "Receiving leads" + (s.website ? " from " + esc(s.website) : "") : "Waiting for your first website lead") + '</p><a href="#connection" class="btn btn-ghost btn-sm">Open Website Connection</a>';
       }) +
       menu("team", "i-users", "Team Members", "Add or remove team members", function () {
-        return '<ul class="team">' + state.team.map(function (m, i) {
+        return '<ul class="team">' + state.team.map(function (m) {
           return '<li><span class="me-av">' + esc(initials(m.name)) + '</span><span class="who"><strong>' + esc(m.name) + "</strong><span>" + esc(m.role) + "</span></span>" +
-            (i === 0 ? "" : '<button type="button" class="link" data-action="remove-member" data-i="' + i + '">Remove</button>') + "</li>";
+            (m.id ? '<button type="button" class="link" data-action="remove-member" data-id="' + esc(m.id) + '">Remove</button>' : "") + "</li>";
         }).join("") + '</ul><form id="team-form" class="inline-form"><input id="tm-name" class="input" required placeholder="Name" aria-label="Team member name"/>' +
           '<input id="tm-role" class="input" placeholder="Role" aria-label="Role"/><button type="submit" class="btn btn-primary btn-sm">' + ic("i-plus") + "Add</button></form>";
       }) +
       menu("billing", "i-card", "Billing", "View plan and payment details", function () {
         return '<div class="kv"><div><span>Plan</span><strong>Command Hub Pro — $697/month</strong></div>' +
-          "<div><span>Includes</span><strong>Unlimited leads, instant alerts, 1-click call and text, team access</strong></div>" +
+          "<div><span>Free trial</span><strong>" + (trialLeft > 0 ? trialLeft + " day" + (trialLeft === 1 ? "" : "s") + " left (ends " + longDate(state.trialEnds) + ")" : "Ended " + longDate(state.trialEnds)) + "</strong></div>" +
           "<div><span>Contract</span><strong>None. Cancel anytime.</strong></div></div>";
       }) +
       menu("security", "i-shield", "Security", "Manage your password and account", function () {
-        return '<div class="toggle-row" style="border-top:0">' + ic("i-shield") + '<span class="who"><strong>Two-step verification</strong><span>Ask for a code when signing in on a new device</span></span>' +
-          '<button type="button" class="switch" role="switch" aria-label="Two-step verification" aria-checked="' + !!s.twoStep + '" data-action="switch" data-key="twoStep"></button></div>' +
-          '<div class="toggle-row"><span class="who"><strong>Sample data</strong><span>Start over with the example leads</span></span>' +
-          '<button type="button" class="btn btn-ghost btn-sm" data-action="reset">' + (ui.confirmReset ? "Tap again to reset" : "Reset") + "</button></div>";
+        return '<form id="password-form" class="form-grid">' +
+          '<div class="field"><label for="pw-current">Current password</label><input id="pw-current" class="input" type="password" autocomplete="current-password" required/></div>' +
+          '<div class="field"><label for="pw-next">New password</label><input id="pw-next" class="input" type="password" autocomplete="new-password" minlength="8" required/></div>' +
+          '<div class="form-actions span-2"><button type="submit" class="btn btn-primary btn-sm">Change password</button></div></form>' +
+          '<div class="toggle-row" style="margin-top:14px"><span class="who"><strong>Signed in as ' + esc(state.user.email) + '</strong><span>Sign out of Command Hub on this device</span></span>' +
+          '<button type="button" class="btn btn-ghost btn-sm" data-action="logout">Log out</button></div>';
       }) +
       "</section></div>";
   }
@@ -555,16 +498,16 @@
   }
 
   function render() {
+    if (!state) return;
     var r = parseRoute(), view = $("#view");
-    if (r.name !== ui.route || r.id !== ui.routeId) {
-      ui.confirmDelete = false; ui.confirmReset = false;
-      if (r.name === "lead" && r.id !== ui.routeId) ui.detailTab = "details";
-    }
     var changed = r.name !== ui.route || r.id !== ui.routeId;
+    if (changed) {
+      ui.confirmDelete = false;
+      if (r.name === "lead") ui.detailTab = "details";
+    }
     ui.route = r.name; ui.routeId = r.id;
-    var html = r.name === "leads" ? viewLeads() : r.name === "lead" ? viewLead(r.id) : r.name === "notifications" ? viewNotifications() :
+    view.innerHTML = r.name === "leads" ? viewLeads() : r.name === "lead" ? viewLead(r.id) : r.name === "notifications" ? viewNotifications() :
       r.name === "connection" ? viewConnection() : r.name === "settings" ? viewSettings() : viewDashboard();
-    view.innerHTML = html;
     var navKey = r.name === "lead" ? "leads" : r.name;
     $$("[data-nav]").forEach(function (a) { a.classList.toggle("active", a.getAttribute("data-nav") === navKey); });
     var u = unread();
@@ -574,6 +517,23 @@
     document.title = (u ? "(" + u + ") " : "") + "Command Hub";
     if (changed) window.scrollTo(0, 0);
   }
+
+  // Background refreshes wait while someone is typing, so their text isn't wiped out.
+  var deferred = false;
+  function typing() {
+    var a = document.activeElement;
+    return a && $("#view").contains(a) && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && a.id !== "lead-search";
+  }
+  function backgroundRefresh() {
+    return api("GET", "/api/state").then(function (s) {
+      state = s;
+      if (typing()) deferred = true; else render();
+      return s;
+    });
+  }
+  document.addEventListener("focusout", function () {
+    setTimeout(function () { if (deferred && !typing()) { deferred = false; render(); } }, 150);
+  });
 
   function refreshRows() {
     var t = $("#lead-table");
@@ -588,25 +548,29 @@
   document.addEventListener("click", function (e) {
     var el = e.target.closest("[data-action]");
     var row = e.target.closest("[data-open]");
-    if (!el && row) { go("lead-" + row.getAttribute("data-open")); return; }
-    if (!el) return;
+    if (!el && row && !e.target.closest("a")) { go("lead-" + row.getAttribute("data-open")); return; }
+    if (!el || !state) return;
     var a = el.getAttribute("data-action"), id = el.getAttribute("data-id"), l = id ? lead(id) : null;
 
     switch (a) {
       case "call":
-        // Let the tel: link open the phone dialer, and log the attempt.
-        markContacted(l, "Called " + (l ? l.phone : ""));
+        // The tel: link opens the phone's dialer; we log the attempt.
+        logContact(l, "call");
         if (el.id === "alert-call") hideAlert();
-        setTimeout(render, 50);
         break;
       case "text":
-        markContacted(l, "Texted " + (l ? l.phone : ""));
+        logContact(l, "text");
         if (el.id === "alert-text") hideAlert();
-        setTimeout(render, 50);
         break;
-      case "test-lead": e.preventDefault(); testLead(); break;
+      case "test-lead":
+        e.preventDefault(); el.disabled = true;
+        api("POST", "/api/leads/test", {}).catch(function (err) { toast(err.message); }).then(function () { el.disabled = false; });
+        break;
       case "alert-close": hideAlert(); break;
-      case "alert-open": hideAlert(); if (alertLead) { markRead(alertLead.id); go("lead-" + alertLead.id); } break;
+      case "alert-open":
+        hideAlert();
+        if (alertLead) { api("POST", "/api/notifications/read", { leadId: alertLead.id }).then(refresh, function () {}); go("lead-" + alertLead.id); }
+        break;
       case "goto-tab": e.preventDefault(); ui.tab = el.getAttribute("data-tab"); ui.q = ""; go("leads"); break;
       case "tab": ui.tab = el.getAttribute("data-tab"); ui.confirmDelete = false; render(); break;
       case "sel":
@@ -615,104 +579,120 @@
         filtered().forEach(function (x) { ui.sel[x.id] = el.checked; }); ui.confirmDelete = false; refreshRows(); break;
       case "bulk-clear": ui.sel = {}; ui.confirmDelete = false; refreshRows(); break;
       case "bulk-contacted":
-        Object.keys(ui.sel).forEach(function (k) { var x = lead(k); if (ui.sel[k] && x && x.status !== "contacted") setStatus(x, "contacted"); });
-        ui.sel = {}; save(); render(); toast("Marked as contacted"); break;
+        act("POST", "/api/leads/bulk", { ids: selectedIds(), action: "contacted" }, "Marked as contacted").then(function () { ui.sel = {}; refreshRows(); }, function () {});
+        break;
       case "bulk-delete":
         if (!ui.confirmDelete) { ui.confirmDelete = true; refreshRows(); break; }
-        var n = 0;
-        state.leads = state.leads.filter(function (x) { if (ui.sel[x.id]) { n++; return false; } return true; });
-        ui.sel = {}; ui.confirmDelete = false; save(); render(); toast(n + (n === 1 ? " lead deleted" : " leads deleted")); break;
+        var ids = selectedIds();
+        ui.confirmDelete = false;
+        act("POST", "/api/leads/bulk", { ids: ids, action: "delete" }, ids.length + (ids.length === 1 ? " lead deleted" : " leads deleted")).then(function () { ui.sel = {}; refreshRows(); }, function () {});
+        break;
       case "detail-tab": ui.detailTab = el.getAttribute("data-tab"); render(); break;
       case "status":
-        setStatus(l, el.getAttribute("data-status")); save(); render(); toast("Status set to " + STATUS[l.status].label); break;
+        var st = el.getAttribute("data-status");
+        act("PATCH", "/api/leads/" + id, { status: st }, "Status set to " + STATUS[st].label).catch(function () {});
+        break;
       case "delete-lead":
         if (!ui.confirmDelete) { ui.confirmDelete = true; render(); break; }
-        state.leads = state.leads.filter(function (x) { return x.id !== id; });
-        ui.confirmDelete = false; save(); go("leads"); toast("Lead deleted"); break;
-      case "read-notif": markRead(null, el.getAttribute("data-nid")); break;
-      case "read-all": state.notifications.forEach(function (x) { x.read = true; }); save(); render(); break;
-      case "hide-notice": state.showSampleNotice = false; save(); render(); break;
-      case "toggle-conn":
-        state.settings.connected = !state.settings.connected; state.settings.connUpdated = Date.now(); save(); render();
-        toast(state.settings.connected ? "Website reconnected" : "Connection paused"); break;
+        ui.confirmDelete = false;
+        api("DELETE", "/api/leads/" + id).then(function () { toast("Lead deleted"); return refresh(); }).then(function () { go("leads"); }, function (err) { toast(err.message); });
+        break;
+      case "read-notif":
+        api("POST", "/api/notifications/read", { id: el.getAttribute("data-nid") }).then(backgroundRefresh, function () {});
+        break;
+      case "read-all": act("POST", "/api/notifications/read", { all: true }).catch(function () {}); break;
+      case "hide-notice": prefs.hideWelcome = true; savePrefs(); render(); break;
       case "guide": ui.guide = !ui.guide; render(); break;
-      case "copy": copySnippet(); break;
+      case "copy": copyText(el.getAttribute("data-copy") === "url" ? state.formUrl : snippet(), el.getAttribute("data-copy") === "url" ? "#form-url" : "#snippet"); break;
       case "switch": toggleSwitch(el.getAttribute("data-key")); break;
       case "menu": var k = el.getAttribute("data-key"); ui.open[k] = !ui.open[k]; render(); break;
       case "edit-company": ui.editCompany = !ui.editCompany; render(); break;
       case "edit-phone": ui.editPhone = true; render(); var p = $("#notify-phone"); if (p) p.focus(); break;
-      case "remove-member": state.team.splice(+el.getAttribute("data-i"), 1); save(); render(); break;
-      case "reset":
-        if (!ui.confirmReset) { ui.confirmReset = true; render(); break; }
-        state = seed(); ui = { route: "", tab: "all", q: "", sel: {}, detailTab: "details", open: {}, guide: false };
-        save(); go("dashboard"); toast("Sample data restored"); break;
+      case "remove-member": act("DELETE", "/api/team/" + encodeURIComponent(id), undefined, "Team member removed").catch(function () {}); break;
+      case "logout":
+        api("POST", "/api/logout", {}).then(function () { location.href = "/"; }, function (err) { toast(err.message); });
+        break;
     }
   });
 
-  function markRead(leadId, nid) {
-    state.notifications.forEach(function (x) { if (x.id === nid || (leadId && x.leadId === leadId)) x.read = true; });
-    save();
-  }
+  function selectedIds() { return Object.keys(ui.sel).filter(function (k) { return ui.sel[k] && lead(k); }); }
 
   function toggleSwitch(key) {
     var s = state.settings;
-    if (key === "browser" && !s.browser) {
+    if (key === "browser") {
+      if (prefs.browser) { prefs.browser = false; savePrefs(); render(); return; }
       try {
         if (!("Notification" in window)) { toast("This browser doesn't support pop-up alerts."); return; }
         Notification.requestPermission().then(function (p) {
-          if (p === "granted") { s.browser = true; save(); render(); toast("Browser alerts turned on"); }
+          if (p === "granted") { prefs.browser = true; savePrefs(); render(); toast("Browser alerts turned on"); }
           else toast("Pop-up alerts are blocked. Allow notifications for this site in your browser settings.");
         }).catch(function () { toast("Pop-up alerts are blocked in this browser."); });
       } catch (e) { toast("Pop-up alerts are blocked in this browser."); }
       return;
     }
-    s[key] = !s[key];
-    if (key === "sound" && s.sound) chime();
-    save(); render();
+    var body = {}; body[key] = !s[key];
+    if (key === "sound" && body.sound) chime();
+    act("PATCH", "/api/account", body).catch(function () {});
   }
 
-  function copySnippet() {
-    var done = function () { toast("Form code copied"); };
+  function copyText(text, selector) {
     var fallback = function () {
-      var pre = $("#snippet"); if (!pre) return;
-      var range = document.createRange(); range.selectNodeContents(pre);
-      var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
-      toast("Code selected. Copy it with your device's copy command.");
+      var node = $(selector); if (!node) return;
+      if (node.select) node.select();
+      else { var range = document.createRange(); range.selectNodeContents(node); var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range); }
+      toast("Selected. Copy it with your device's copy command.");
     };
-    try { navigator.clipboard.writeText(SNIPPET).then(done, fallback); } catch (e) { fallback(); }
+    try { navigator.clipboard.writeText(text).then(function () { toast("Copied"); }, fallback); } catch (e) { fallback(); }
   }
 
   document.addEventListener("submit", function (e) {
     var f = e.target;
     e.preventDefault();
-    var s = state.settings, l;
+    if (!state) return;
+    var l, btn = f.querySelector("[type=submit]");
+    var done = function () { if (btn) btn.disabled = false; };
+    if (btn) btn.disabled = true;
     switch (f.id) {
       case "top-search":
-        ui.q = $("#top-search-input").value; ui.tab = "all"; go("leads"); break;
+        done(); ui.q = $("#top-search-input").value; ui.tab = "all"; go("leads"); break;
       case "msg-form":
         l = lead(f.getAttribute("data-id")); var body = $("#msg-body").value.trim();
+        done();
         if (!l || !body) return;
-        l.messages.push({ from: "you", text: body, at: Date.now() });
-        markContacted(l, "Texted " + l.phone);
-        render();
+        logContact(l, "text", body);
         location.href = smsHref(l.phone, body);
         break;
       case "note-form":
-        l = lead(f.getAttribute("data-id")); var note = $("#note-body").value.trim();
-        if (!l || !note) return;
-        l.activity.push({ text: "Note added", note: note, at: Date.now() }); save(); render(); toast("Note saved"); break;
+        var note = $("#note-body").value.trim();
+        if (!note) { done(); return; }
+        act("POST", "/api/leads/" + f.getAttribute("data-id") + "/notes", { note: note }, "Note saved").then(done, done);
+        break;
       case "site-form":
-        s.website = $("#site-url").value.trim() || s.website; s.connUpdated = Date.now(); save(); render(); toast("Website saved"); break;
+        act("PATCH", "/api/account", { website: $("#site-url").value.trim() }, "Website saved").then(done, done);
+        break;
       case "demo-form":
-        addLead({ name: $("#df-name").value.trim(), phone: $("#df-phone").value.trim(), service: $("#df-service").value, email: $("#df-email").value.trim(), message: $("#df-msg").value.trim() }, false);
+        fetch(state.formUrl, {
+          method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify({ name: $("#df-name").value, phone: $("#df-phone").value, service: $("#df-service").value, email: $("#df-email").value, message: $("#df-msg").value })
+        }).then(function (res) {
+          return res.json().catch(function () { return {}; }).then(function (d) { if (!res.ok) throw new Error(d.error || "The form couldn't be sent."); });
+        }).then(function () { f.reset(); }, function (err) { toast(err.message === "Failed to fetch" ? "Can't reach Command Hub. Check your internet connection." : err.message); }).then(done);
         break;
       case "company-form":
-        s.company = $("#c-company").value.trim(); s.owner = $("#c-owner").value.trim(); s.email = $("#c-email").value.trim(); s.phone = $("#c-phone").value.trim();
-        ui.editCompany = false; save(); render(); toast("Company information saved"); break;
+        act("PATCH", "/api/account", { company: $("#c-company").value, owner: $("#c-owner").value, email: $("#c-email").value, phone: $("#c-phone").value }, "Company information saved")
+          .then(function () { ui.editCompany = false; render(); }, done);
+        break;
       case "phone-form":
-        s.notifyPhone = $("#notify-phone").value.trim(); ui.editPhone = false; save(); render(); toast("Notification number saved"); break;
+        act("PATCH", "/api/account", { notifyPhone: $("#notify-phone").value }, "Notification number saved").then(function () { ui.editPhone = false; render(); }, done);
+        break;
       case "team-form":
-        state.team.push({ name: $("#tm-name").value.trim(), role: $("#tm-role").value.trim() || "Team Member" }); save(); render(); toast("Team member added"); break;
+        act("POST", "/api/team", { name: $("#tm-name").value, role: $("#tm-role").value }, "Team member added").then(done, done);
+        break;
+      case "password-form":
+        api("POST", "/api/password", { current: $("#pw-current").value, next: $("#pw-next").value })
+          .then(function () { toast("Password changed"); f.reset(); }, function (err) { toast(err.message); }).then(done);
+        break;
+      default: done();
     }
   });
 
@@ -740,10 +720,29 @@
     $$("[data-ts]").forEach(function (el) { el.textContent = rel(+el.getAttribute("data-ts")); });
   }, 30000);
 
-  // Keep tabs on other open windows in sync
-  window.addEventListener("storage", function (e) {
-    if (e.key === KEY) { state = load(); render(); }
+  // ---------- Live updates ----------
+  function listen() {
+    if (!("EventSource" in window)) { setInterval(backgroundRefresh, 30000); return; }
+    var es = new EventSource("/api/events");
+    es.addEventListener("lead", function (ev) {
+      var data = {};
+      try { data = JSON.parse(ev.data); } catch (e) { /* ignore */ }
+      backgroundRefresh().then(function () {
+        var l = lead(data.id) || data;
+        showAlert(l);
+        if (state.settings.sound) chime();
+        browserNotify(l);
+      }, function () {});
+    });
+    es.addEventListener("update", function () { backgroundRefresh().catch(function () {}); });
+    es.onopen = function () { $("#sys-updated").textContent = "just now"; };
+  }
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "visible" && state) backgroundRefresh().catch(function () {});
   });
 
-  render();
+  refresh().then(listen, function (e) {
+    $("#view").innerHTML = '<div class="card empty"><strong>Couldn\'t load your leads</strong>' + esc(e.message) +
+      '<br/><br/><button type="button" class="btn btn-primary btn-sm" onclick="location.reload()">Try again</button></div>';
+  });
 })();
