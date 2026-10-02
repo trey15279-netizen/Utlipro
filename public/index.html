@@ -51,7 +51,7 @@
         <a href="#faq">FAQ</a>
       </nav>
       <a href="/login" class="login-link">Log In</a>
-      <a href="/signup" class="btn btn-dark btn-sm header-cta">Start Free Trial <svg class="ico"><use href="#i-arrow"/></svg></a>
+      <a href="/signup" class="btn btn-dark btn-sm header-cta" data-track="cta" data-track-label="Header trial">Start Free Trial <svg class="ico"><use href="#i-arrow"/></svg></a>
       <button class="nav-toggle" aria-label="Toggle menu" aria-expanded="false" aria-controls="main-nav"><span></span><span></span><span></span></button>
     </div>
   </header>
@@ -73,8 +73,8 @@
           </ul>
 
           <div class="hero-actions">
-            <a href="/signup" class="btn btn-primary btn-lg">Start Your 14-Day Free Trial <svg class="ico"><use href="#i-arrow"/></svg></a>
-            <a href="#how-it-works" class="btn-link"><span class="play-ring"><svg class="ico"><use href="#i-play"/></svg></span> Watch 1 Min Demo</a>
+            <a href="/signup" class="btn btn-primary btn-lg" data-track="cta" data-track-label="Hero trial">Start Your 14-Day Free Trial <svg class="ico"><use href="#i-arrow"/></svg></a>
+            <a href="#how-it-works" class="btn-link" data-track="demo" data-track-label="Watch demo"><span class="play-ring"><svg class="ico"><use href="#i-play"/></svg></span> Watch 1 Min Demo</a>
           </div>
           <p class="fineprint">No setup fees <i>•</i> Cancel anytime <i>•</i> Just $697/month after trial</p>
         </div>
@@ -135,7 +135,7 @@
             <small>now</small>
           </div>
 
-          <button class="btn btn-primary btn-sm demo-btn" id="demo-btn" type="button">Submit Test Lead <svg class="ico"><use href="#i-arrow"/></svg></button>
+          <button class="btn btn-primary btn-sm demo-btn" id="demo-btn" type="button" data-track="demo" data-track-label="Submit test lead">Submit Test Lead <svg class="ico"><use href="#i-arrow"/></svg></button>
         </div>
       </div>
     </section>
@@ -151,7 +151,7 @@
               <input type="text" name="name" placeholder="Name" aria-label="Name" />
               <input type="tel" name="phone" placeholder="Phone" aria-label="Phone" />
               <input type="text" name="service" placeholder="Service Needed" aria-label="Service needed" />
-              <button type="submit" class="btn btn-primary btn-xs">Submit</button>
+              <button type="submit" class="btn btn-primary btn-xs" data-track="demo" data-track-label="Mini form">Submit</button>
             </form>
             <svg class="flow-arrow"><use href="#i-arrow"/></svg>
             <div class="flow-hub">
@@ -218,7 +218,7 @@
     </section>
 
     <!-- Pricing -->
-    <section class="pricing" id="pricing">
+    <section class="pricing" id="pricing" data-track-view="pricing_view">
       <div class="container-wide">
         <div class="pricing-band">
           <div class="price">
@@ -227,7 +227,7 @@
             <p>14-day free trial. Cancel anytime.</p>
           </div>
           <div class="price-cta">
-            <a href="/signup" class="btn btn-primary btn-lg">Start Your 14-Day Free Trial <svg class="ico"><use href="#i-arrow"/></svg></a>
+            <a href="/signup" class="btn btn-primary btn-lg" data-track="cta" data-track-label="Pricing trial">Start Your 14-Day Free Trial <svg class="ico"><use href="#i-arrow"/></svg></a>
             <p class="fineprint light">No setup fees <i>•</i> No contracts <i>•</i> Cancel anytime</p>
           </div>
           <div class="price-trust">
@@ -287,10 +287,12 @@
         <a href="#pricing">Pricing</a>
         <a href="#faq">FAQ</a>
       </nav>
-      <p>Built for Roofers. Powered by Results.</p>
+      <p>Built for Roofers. Powered by Results. <a href="/privacy">Privacy</a></p>
     </div>
   </footer>
 
+  <script src="/config.js"></script>
+  <script src="/track.js"></script>
   <script src="script.js"></script>
 </body>
 </html>

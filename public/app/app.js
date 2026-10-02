@@ -305,13 +305,18 @@
     }).join("");
     var body;
     if (ui.detailTab === "messages") {
+      var who = { you: "You", auto: "Automatic text", them: firstName(l.name) };
       var thread = l.messages.map(function (m) {
-        return '<div class="bubble ' + (m.from === "you" ? "you" : "them") + '">' + esc(m.text) + "<small>" + (m.from === "you" ? "Opened in Messages • " : "") + rel(m.at) + "</small></div>";
+        var mine = m.from === "you" || m.from === "auto";
+        return '<div class="bubble ' + (mine ? "you" : "them") + (m.from === "auto" ? " auto" : "") + '">' + esc(m.text) + "<small>" + esc(who[m.from] || "") + " • " + rel(m.at) + "</small></div>";
       }).join("");
-      body = '<div class="thread">' + (l.message ? '<div class="bubble them">' + esc(l.message) + "<small>Website form • " + rel(l.receivedAt) + "</small></div>" : "") + thread + "</div>" +
-        (l.phone ? '<form id="msg-form" data-id="' + l.id + '"><div class="field"><label for="msg-body">Text message</label><textarea id="msg-body" class="textarea">' + esc(textTemplate(l)) + "</textarea></div>" +
-          '<div class="form-actions" style="margin-top:10px"><button type="submit" class="btn btn-primary">' + ic("i-chat") + "Text " + esc(firstName(l.name)) + "</button></div>" +
-          '<p class="hint">Opens your phone\'s Messages app with this text ready to send to ' + esc(l.phone) + ".</p></form>"
+      var origin = l.source === "Text Message" ? "Text" : l.source === "Test Lead" ? "Test lead" : "Website form";
+      body = '<div class="thread">' + (l.message ? '<div class="bubble them">' + esc(l.message) + "<small>" + origin + " • " + rel(l.receivedAt) + "</small></div>" : "") + thread +
+        (thread || l.message ? "" : '<p class="hint">No messages yet.</p>') + "</div>" +
+        (l.phone ? '<form id="msg-form" data-id="' + l.id + '"><div class="field"><label for="msg-body">Text message</label><textarea id="msg-body" class="textarea">' + esc(l.messages.length ? "" : textTemplate(l)) + "</textarea></div>" +
+          '<div class="form-actions" style="margin-top:10px"><button type="submit" class="btn btn-primary">' + ic("i-chat") + (state.smsReady ? "Send text" : "Text " + esc(firstName(l.name))) + "</button></div>" +
+          '<p class="hint">' + (state.smsReady ? "Sends from " + (state.settings.twilioNumber ? "your Command Hub number " + esc(state.settings.twilioNumber) : "your Command Hub number") + ". Replies show up here."
+            : "Opens your phone\'s Messages app with this text ready to send to " + esc(l.phone) + ".") + "</p></form>"
           : '<p class="hint">This lead didn\'t leave a phone number. Reach them at ' + esc(l.email) + ".</p>");
     } else if (ui.detailTab === "activity") {
       body = '<ul class="timeline">' + l.activity.slice().reverse().map(function (a) {
@@ -382,6 +387,7 @@
       '  <input name="service" placeholder="Service Needed">',
       '  <textarea name="message" placeholder="How can we help?"></textarea>',
       '  <input type="text" name="_gotcha" style="display:none" tabindex="-1" autocomplete="off">',
+      '  <p style="font-size:12px">By submitting, you agree to receive texts about your request. Msg &amp; data rates may apply. Reply STOP to opt out.</p>',
       '  <button type="submit">Submit</button>',
       "</form>"
     ].join("\n");
@@ -451,7 +457,35 @@
     if (s.email_on && !state.emailReady) setupNote.push("email alerts");
     var trialLeft = Math.ceil((state.trialEnds - Date.now()) / DAY);
 
-    return '<div class="page-head"><div><h1>Settings</h1><p>Manage your account, notifications, and more.</p></div></div>' +
+    var replyForm = function (id, key, label) {
+      return '<form id="' + id + '" class="reply-form"><label class="sr-only" for="' + id + '-text">' + label + '</label><textarea id="' + id + '-text" class="textarea" maxlength="480">' + esc(s[key]) + "</textarea>" +
+        '<div class="form-actions"><button type="submit" class="btn btn-ghost btn-sm">Save message</button></div></form>';
+    };
+    var replies = '<section class="card card-pad"><div class="card-head"><h2>Instant Replies</h2></div>' +
+      toggle("autoReply", "i-bolt", "Auto-reply to new leads", "Text new website leads within seconds", s.autoReply) +
+      (s.autoReply ? replyForm("ar-form", "autoReplyText", "Auto-reply message") : "") +
+      toggle("missedTextOn", "i-phone", "Missed-call text-back", "Text callers you couldn't pick up", s.missedTextOn) +
+      (s.missedTextOn ? replyForm("mt-form", "missedText", "Missed-call message") : "") +
+      '<p class="hint">Use {first_name}, {company}, {owner} and {service} to fill in details. "Reply STOP to opt out." is added automatically.' +
+      (state.smsReady ? "" : " These texts start once texting is set up on the server.") + "</p></section>";
+    var copyRow = function (label, key, value) {
+      return '<div class="field"><label>' + label + '</label><div class="inline-form"><input class="input num" readonly value="' + esc(value) + '" id="copy-' + key + '" aria-label="' + label + '"/>' +
+        '<button type="button" class="btn btn-ghost btn-sm" data-action="copy" data-copy="' + key + '">' + ic("i-copy") + "Copy</button></div></div>";
+    };
+    var phoneLine = '<section class="card card-pad"><div class="card-head"><h2>Business Phone Line</h2></div>' +
+      '<p class="muted" style="margin:0 0 14px">Calls to your Command Hub number ring your cell. If you can\'t answer, the caller gets your missed-call text and shows up as a lead.</p>' +
+      '<form id="line-form" class="form-grid">' +
+      '<div class="field"><label for="pl-number">Command Hub number</label><input id="pl-number" class="input num" type="tel" placeholder="+18645550100" value="' + esc(s.twilioNumber) + '"/></div>' +
+      '<div class="field"><label for="pl-forward">Ring this phone</label><input id="pl-forward" class="input num" type="tel" placeholder="' + esc(s.notifyPhone || "Your cell") + '" value="' + esc(s.forwardPhone) + '"/></div>' +
+      '<div class="form-actions span-2"><button type="submit" class="btn btn-primary btn-sm">Save phone line</button></div></form>' +
+      '<details class="line-help"><summary>How to set up the number</summary><ol class="steps-list">' +
+      "<li>In Twilio, buy a local phone number and paste it above.</li>" +
+      "<li>In that number's settings, set <strong>A call comes in</strong> to the first address below and <strong>A message comes in</strong> to the second (both HTTP POST).</li>" +
+      "<li>Put the number on your website, Google Business Profile, truck and yard signs.</li></ol>" +
+      copyRow("Calls address", "voice", state.voiceUrl) + copyRow("Texts address", "sms", state.smsUrl) + "</details></section>";
+
+    return '<div class="page-head"><div><h1>Settings</h1><p>Manage your account, notifications, and more.</p></div>' +
+      (state.isAdmin ? '<a href="/admin" class="btn btn-ghost">' + ic("i-signal") + "Campaign Stats</a>" : "") + "</div>" +
       '<div class="settings-grid"><div class="stack">' +
       '<section class="card card-pad"><div class="card-head"><h2>Company Information</h2>' + (ui.editCompany ? "" : '<button type="button" class="link" data-action="edit-company">Edit</button>') + "</div>" + company + "</section>" +
       '<section class="card card-pad"><div class="card-head"><h2>Notifications</h2></div>' +
@@ -461,8 +495,8 @@
       toggle("browser", "i-bolt", "Browser Alerts", "Pop-up alerts on this device", prefs.browser) +
       phoneRow +
       (setupNote.length ? '<p class="hint">Your ' + setupNote.join(" and ") + " will start once the server's messaging service is set up. Until then, alerts appear here in the app.</p>" : "") +
-      "</section></div>" +
-      '<section class="card card-pad">' +
+      "</section>" + replies + "</div>" +
+      '<div class="stack">' + phoneLine + '<section class="card card-pad">' +
       menu("website", "i-globe", "Website Connection", "Manage your website integration", function () {
         return '<p class="muted" style="margin:0 0 10px">' + (state.lastWebsiteLeadAt ? "Receiving leads" + (s.website ? " from " + esc(s.website) : "") : "Waiting for your first website lead") + '</p><a href="#connection" class="btn btn-ghost btn-sm">Open Website Connection</a>';
       }) +
@@ -486,7 +520,7 @@
           '<div class="toggle-row" style="margin-top:14px"><span class="who"><strong>Signed in as ' + esc(state.user.email) + '</strong><span>Sign out of Command Hub on this device</span></span>' +
           '<button type="button" class="btn btn-ghost btn-sm" data-action="logout">Log out</button></div>';
       }) +
-      "</section></div>";
+      "</section></div></div>";
   }
 
   // ---------- Render / routing ----------
@@ -603,7 +637,11 @@
       case "read-all": act("POST", "/api/notifications/read", { all: true }).catch(function () {}); break;
       case "hide-notice": prefs.hideWelcome = true; savePrefs(); render(); break;
       case "guide": ui.guide = !ui.guide; render(); break;
-      case "copy": copyText(el.getAttribute("data-copy") === "url" ? state.formUrl : snippet(), el.getAttribute("data-copy") === "url" ? "#form-url" : "#snippet"); break;
+      case "copy":
+        var what = el.getAttribute("data-copy");
+        var src = { url: [state.formUrl, "#form-url"], snippet: [snippet(), "#snippet"], voice: [state.voiceUrl, "#copy-voice"], sms: [state.smsUrl, "#copy-sms"] }[what];
+        if (src) copyText(src[0], src[1]);
+        break;
       case "switch": toggleSwitch(el.getAttribute("data-key")); break;
       case "menu": var k = el.getAttribute("data-key"); ui.open[k] = !ui.open[k]; render(); break;
       case "edit-company": ui.editCompany = !ui.editCompany; render(); break;
@@ -659,6 +697,10 @@
         l = lead(f.getAttribute("data-id")); var body = $("#msg-body").value.trim();
         done();
         if (!l || !body) return;
+        if (state.smsReady) {
+          act("POST", "/api/leads/" + l.id + "/sms", { message: body }, "Text sent").catch(function () {});
+          break;
+        }
         logContact(l, "text", body);
         location.href = smsHref(l.phone, body);
         break;
@@ -687,6 +729,15 @@
         break;
       case "team-form":
         act("POST", "/api/team", { name: $("#tm-name").value, role: $("#tm-role").value }, "Team member added").then(done, done);
+        break;
+      case "ar-form":
+        act("PATCH", "/api/account", { autoReplyText: $("#ar-form-text").value }, "Auto-reply saved").then(done, done);
+        break;
+      case "mt-form":
+        act("PATCH", "/api/account", { missedText: $("#mt-form-text").value }, "Missed-call text saved").then(done, done);
+        break;
+      case "line-form":
+        act("PATCH", "/api/account", { twilioNumber: $("#pl-number").value, forwardPhone: $("#pl-forward").value }, "Phone line saved").then(done, done);
         break;
       case "password-form":
         api("POST", "/api/password", { current: $("#pw-current").value, next: $("#pw-next").value })
@@ -735,6 +786,15 @@
       }, function () {});
     });
     es.addEventListener("update", function () { backgroundRefresh().catch(function () {}); });
+    es.addEventListener("message", function (ev) {
+      var data = {};
+      try { data = JSON.parse(ev.data); } catch (e) { /* ignore */ }
+      backgroundRefresh().then(function () {
+        toast("New text from " + (data.name || "a lead") + (data.text ? ": " + data.text : ""));
+        if (state.settings.sound) chime();
+        browserNotify({ id: data.id, name: data.name || "New text", service: data.text || "", phone: "" });
+      }, function () {});
+    });
     es.onopen = function () { $("#sys-updated").textContent = "just now"; };
   }
   document.addEventListener("visibilitychange", function () {

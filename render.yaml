@@ -28,3 +28,11 @@ services:
         sync: false
       - key: EMAIL_FROM
         sync: false
+      - key: ADMIN_EMAILS
+        sync: false
+      - key: META_PIXEL_ID
+        sync: false
+      - key: GOOGLE_TAG_ID
+        sync: false
+      - key: GOOGLE_ADS_SIGNUP_CONVERSION
+        sync: false

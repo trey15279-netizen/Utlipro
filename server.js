@@ -7,6 +7,7 @@ const path = require("path");
 const dbm = require("./lib/db");
 const sec = require("./lib/security");
 const notify = require("./lib/notify");
+const tw = require("./lib/twilio");
 
 const DAY = 24 * 60 * 60 * 1000;
 const SESSION_DAYS = 30;
@@ -14,7 +15,15 @@ const TRIAL_DAYS = 14;
 const COOKIE = "ch_session";
 const STATUSES = ["new", "contacted", "appointment", "won", "lost", "missed"];
 const STATUS_LABEL = { new: "New", contacted: "Contacted", appointment: "Appointment", won: "Won", lost: "Lost", missed: "Missed" };
-const DEFAULT_SETTINGS = { sms: true, email_on: true, sound: true };
+const DEFAULT_SETTINGS = {
+  sms: true, email_on: true, sound: true,
+  autoReply: true,
+  autoReplyText: "Hi {first_name}, thanks for contacting {company}! This is {owner}. I got your request and will call you shortly.",
+  missedTextOn: true,
+  missedText: "Hi, this is {owner} with {company}. Sorry I missed your call! I'm on a job right now. How can I help? Text back here and I'll get right back to you."
+};
+const EVENT_TYPES = ["pageview", "cta", "demo", "pricing_view", "signup_start", "signup"];
+const STAGES = ["", "Visited", "Viewed pricing", "Clicked demo or trial", "Started sign-up", "Signed up"];
 const MIME = {
   ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8",
   ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".ico": "image/x-icon",
@@ -44,6 +53,8 @@ function createApp(opts) {
   const secureCookies = env.NODE_ENV === "production";
   const authAllow = sec.limiter(20, 15 * 60 * 1000);
   const formAllow = sec.limiter(30, 10 * 60 * 1000);
+  const trackAllow = sec.limiter(300, 10 * 60 * 1000);
+  const admins = String(env.ADMIN_EMAILS || "").split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
   const streams = new Map(); // accountId -> Set<res>
 
   // ---------- Small HTTP helpers ----------
@@ -54,7 +65,7 @@ function createApp(opts) {
   }
   function redirect(res, to) { res.writeHead(302, { Location: to, "Cache-Control": "no-store" }); res.end(); }
 
-  function readBody(req, limit) {
+  function readRaw(req, limit) {
     return new Promise((resolve, reject) => {
       let size = 0; const chunks = [];
       req.on("data", (c) => {
@@ -62,18 +73,19 @@ function createApp(opts) {
         if (size > limit) { reject(new HttpError(413, "That submission is too large.")); req.destroy(); return; }
         chunks.push(c);
       });
-      req.on("end", () => {
-        const raw = Buffer.concat(chunks).toString("utf8");
-        const type = (req.headers["content-type"] || "").split(";")[0].trim().toLowerCase();
-        try {
-          if (!raw) resolve({});
-          else if (type === "application/json") resolve(JSON.parse(raw) || {});
-          else if (type === "application/x-www-form-urlencoded") resolve(Object.fromEntries(new URLSearchParams(raw)));
-          else if (type === "text/plain") resolve(Object.fromEntries(new URLSearchParams(raw)));
-          else reject(new HttpError(415, "Send the form as JSON or a standard HTML form."));
-        } catch (e) { reject(new HttpError(400, "The request body could not be read.")); }
-      });
+      req.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
       req.on("error", reject);
+    });
+  }
+  function readBody(req, limit) {
+    return readRaw(req, limit).then((raw) => {
+      const type = (req.headers["content-type"] || "").split(";")[0].trim().toLowerCase();
+      try {
+        if (!raw) return {};
+        if (type === "application/json") return JSON.parse(raw) || {};
+        if (type === "application/x-www-form-urlencoded" || type === "text/plain") return Object.fromEntries(new URLSearchParams(raw));
+      } catch (e) { throw new HttpError(400, "The request body could not be read."); }
+      throw new HttpError(415, "Send the form as JSON or a standard HTML form.");
     });
   }
 
@@ -146,7 +158,8 @@ function createApp(opts) {
     return l;
   }
 
-  function createLead(acct, data, source, req) {
+  function createLead(acct, data, source, req, opts) {
+    opts = opts || {};
     const first = clean(data.first_name || data.firstname, 60), last = clean(data.last_name || data.lastname, 60);
     const lead = {
       id: sec.id(),
@@ -182,7 +195,48 @@ function createApp(opts) {
       results.forEach((r) => addActivity(lead.id, r.text));
       broadcast(acct.id, "update", { leadId: lead.id });
     }).catch((e) => console.error("alert error", e));
+
+    const s = settingsOf(acct);
+    if (s.autoReply && lead.phone && !opts.noAutoReply) {
+      const text = fill(s.autoReplyText, acct, lead);
+      if (source === "Test Lead") {
+        db.prepare("INSERT INTO messages (lead_id, sender, text, at) VALUES (?, 'auto', ?, ?)").run(lead.id, withOptOut(text), Date.now());
+        addActivity(lead.id, "Auto-reply preview (test leads aren't texted)");
+      } else if (!notify.smsConfigured(env)) {
+        addActivity(lead.id, "Auto-reply skipped: texting is not set up on the server yet");
+      } else {
+        autoText(acct, lead.id, lead.phone, text, "Auto-reply");
+      }
+    }
     return lead;
+  }
+
+  // ---------- Automatic texts ----------
+  function fill(tpl, acct, lead) {
+    const first = lead ? String(lead.name || "").split(" ")[0] : "";
+    const vals = { first_name: first || "there", name: (lead && lead.name) || "", company: acct.company, owner: String(acct.owner || "").split(" ")[0],
+      service: lead && lead.service ? String(lead.service).toLowerCase() : "your request" };
+    return String(tpl || "").replace(/\{(\w+)\}/g, (m, k) => (k in vals ? vals[k] : m));
+  }
+  function withOptOut(text) { return /\bstop\b/i.test(text) ? text : text + " Reply STOP to opt out."; }
+  function autoText(acct, leadId, to, text, kind) {
+    const body = withOptOut(text);
+    return notify.sendSms(env, to, body, acct.twilio_number || undefined).then(() => {
+      db.prepare("INSERT INTO messages (lead_id, sender, text, at) VALUES (?, 'auto', ?, ?)").run(leadId, body, Date.now());
+      addActivity(leadId, kind + " texted to " + tw.prettyPhone(to));
+    }, (e) => {
+      addActivity(leadId, kind + " failed: " + e.message);
+    }).then(() => broadcast(acct.id, "update", { leadId: leadId })).catch((e) => console.error("auto text", e));
+  }
+  function findLeadByPhone(acct, phone) {
+    const key = tw.phoneKey(phone);
+    if (key.length < 10) return null;
+    const rows = db.prepare("SELECT * FROM leads WHERE account_id = ? AND phone != '' ORDER BY received_at DESC LIMIT 2000").all(acct.id);
+    return rows.find((r) => tw.phoneKey(r.phone) === key) || null;
+  }
+  function accountByNumber(num) {
+    const e = notify.toE164(num);
+    return e ? db.prepare("SELECT * FROM accounts WHERE twilio_number = ?").get(e) : null;
   }
 
   // New leads with no contact after 24 hours become "Missed".
@@ -220,8 +274,13 @@ function createApp(opts) {
         db.prepare("SELECT id, name, role FROM team WHERE account_id = ? ORDER BY created_at").all(acct.id).map((t) => ({ id: t.id, name: t.name, role: t.role }))),
       settings: {
         company: acct.company, owner: acct.owner, email: acct.email, phone: acct.phone, notifyPhone: acct.notify_phone,
-        website: acct.website, sms: !!s.sms, email_on: !!s.email_on, sound: !!s.sound
+        website: acct.website, sms: !!s.sms, email_on: !!s.email_on, sound: !!s.sound,
+        autoReply: !!s.autoReply, autoReplyText: s.autoReplyText, missedTextOn: !!s.missedTextOn, missedText: s.missedText,
+        twilioNumber: acct.twilio_number, forwardPhone: acct.forward_phone
       },
+      voiceUrl: baseUrl(req) + "/twilio/voice",
+      smsUrl: baseUrl(req) + "/twilio/sms",
+      isAdmin: isAdmin(acct),
       user: { name: acct.user_name, email: acct.user_email },
       trialEnds: acct.trial_ends,
       formUrl: baseUrl(req) + "/f/" + acct.form_key,
@@ -253,6 +312,9 @@ function createApp(opts) {
         .run(acctId, company, name, email, phone, phone, sec.token(12), JSON.stringify(DEFAULT_SETTINGS), now + TRIAL_DAYS * DAY, now);
       db.prepare("INSERT INTO users (id, account_id, name, email, pass_hash, created_at) VALUES (?, ?, ?, ?, ?, ?)")
         .run(userId, acctId, name, email, sec.hashPassword(password), now);
+      const attr = cleanAttr(body.attr);
+      db.prepare("UPDATE accounts SET attribution = ? WHERE id = ?").run(JSON.stringify(attr), acctId);
+      if (validVid(body.vid)) recordEvent(body.vid, "signup", company, "/signup", attr, "");
     });
     startSession(res, userId);
     send(res, 201, { ok: true });
@@ -294,9 +356,22 @@ function createApp(opts) {
       if (k === "website" && v && !/^https?:\/\//i.test(v)) throw new HttpError(400, "Website should start with http:// or https://");
       sets.push(fields[k][0] + " = ?"); vals.push(v);
     });
+    if (body.twilioNumber !== undefined) {
+      const raw = clean(body.twilioNumber, 40), num = raw ? notify.toE164(raw) : "";
+      if (raw && !num) throw new HttpError(400, "Enter your Command Hub number like +18645550100.");
+      if (num && db.prepare("SELECT 1 FROM accounts WHERE twilio_number = ? AND id != ?").get(num, acct.id)) throw new HttpError(409, "That number is already connected to another account.");
+      sets.push("twilio_number = ?"); vals.push(num);
+    }
+    if (body.forwardPhone !== undefined) { sets.push("forward_phone = ?"); vals.push(clean(body.forwardPhone, 40)); }
     const s = settingsOf(acct);
     let changed = false;
-    ["sms", "email_on", "sound"].forEach((k) => { if (typeof body[k] === "boolean") { s[k] = body[k]; changed = true; } });
+    ["sms", "email_on", "sound", "autoReply", "missedTextOn"].forEach((k) => { if (typeof body[k] === "boolean") { s[k] = body[k]; changed = true; } });
+    ["autoReplyText", "missedText"].forEach((k) => {
+      if (body[k] === undefined) return;
+      const v = cleanText(body[k], 480);
+      if (!v) throw new HttpError(400, "The text message can't be empty.");
+      s[k] = v; changed = true;
+    });
     if (changed) { sets.push("settings = ?"); vals.push(JSON.stringify(s)); }
     if (sets.length) db.prepare("UPDATE accounts SET " + sets.join(", ") + " WHERE id = ?").run(...vals, acct.id);
     if (body.owner !== undefined) db.prepare("UPDATE users SET name = ? WHERE id = ?").run(clean(body.owner, 120), acct.user_id);
@@ -382,6 +457,164 @@ function createApp(opts) {
     send(res, 200, { ok: true });
   });
 
+  route("POST", "/api/leads/:id/sms", async (req, res, p, body, acct) => {
+    const l = ownedLead(acct, p.id);
+    if (!notify.smsConfigured(env)) throw new HttpError(400, "Texting isn't set up on the server yet.");
+    if (!l.phone) throw new HttpError(400, "This lead didn't leave a phone number.");
+    const msg = cleanText(body.message, 1600);
+    if (!msg) throw new HttpError(400, "Write a message first.");
+    try { await notify.sendSms(env, l.phone, msg, acct.twilio_number || undefined); }
+    catch (e) { throw new HttpError(502, "Text not sent: " + e.message); }
+    dbm.tx(db, () => {
+      db.prepare("INSERT INTO messages (lead_id, sender, text, at) VALUES (?, 'you', ?, ?)").run(l.id, msg, Date.now());
+      addActivity(l.id, "Texted " + l.phone);
+      if (l.status === "new" || l.status === "missed") setStatus(l, "contacted");
+    });
+    send(res, 200, { ok: true });
+  });
+
+  // ---------- Analytics ----------
+  function isAdmin(acct) { return !!acct && admins.includes(String(acct.user_email || "").toLowerCase()); }
+  function validVid(v) { return typeof v === "string" && /^[\w-]{8,64}$/.test(v); }
+  function cleanAttr(a) {
+    const out = {};
+    if (!a || typeof a !== "object") return out;
+    ["c", "r", "utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "landing"].forEach((k) => { if (a[k]) out[k] = clean(a[k], 100); });
+    return out;
+  }
+  function recordEvent(vid, type, label, pagePath, attr, ref) {
+    attr = attr || {};
+    db.prepare("INSERT INTO events (at, vid, type, label, path, campaign, recipient, source, medium, referrer) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+      .run(Date.now(), vid, type, clean(label, 80), clean(pagePath, 200), clean(attr.c || attr.utm_campaign, 100), clean(attr.r, 100),
+        clean(attr.utm_source, 100), clean(attr.utm_medium, 100), clean(String(ref || "").split("?")[0], 300));
+  }
+  function recipientRows(since) {
+    return db.prepare(
+      "SELECT recipient, MAX(campaign) AS campaign, MIN(at) AS first_seen, MAX(at) AS last_seen, COUNT(*) AS events, " +
+      "MAX(CASE type WHEN 'signup' THEN 5 WHEN 'signup_start' THEN 4 WHEN 'demo' THEN 3 WHEN 'cta' THEN 3 WHEN 'pricing_view' THEN 2 ELSE 1 END) AS stage " +
+      "FROM events WHERE recipient != '' AND at >= ? GROUP BY recipient ORDER BY last_seen DESC LIMIT 5000"
+    ).all(since).map((r) => Object.assign(r, { stageLabel: STAGES[r.stage] }));
+  }
+  function sinceParam(req) {
+    const days = Math.min(365, Math.max(1, Number(new URL(req.url, "http://x").searchParams.get("days")) || 30));
+    return { days, since: Date.now() - days * DAY };
+  }
+
+  route("GET", "/api/admin/stats", async (req, res, p, body, acct) => {
+    if (!isAdmin(acct)) throw new HttpError(404, "Not found.");
+    const { days, since } = sinceParam(req);
+    const campaigns = db.prepare(
+      "SELECT CASE WHEN campaign = '' THEN '(no campaign)' ELSE campaign END AS campaign, COUNT(DISTINCT vid) AS visitors, " +
+      "COUNT(DISTINCT CASE WHEN type = 'pricing_view' THEN vid END) AS pricing, " +
+      "COUNT(DISTINCT CASE WHEN type IN ('demo', 'cta') THEN vid END) AS interested, " +
+      "COUNT(DISTINCT CASE WHEN type = 'signup_start' THEN vid END) AS signupStarts, " +
+      "COUNT(DISTINCT CASE WHEN type = 'signup' THEN vid END) AS signups " +
+      "FROM events WHERE at >= ? GROUP BY 1 ORDER BY visitors DESC"
+    ).all(since);
+    const daily = db.prepare(
+      "SELECT strftime('%Y-%m-%d', at / 1000, 'unixepoch') AS day, COUNT(DISTINCT vid) AS visitors, " +
+      "COUNT(DISTINCT CASE WHEN type = 'signup' THEN vid END) AS signups FROM events WHERE at >= ? GROUP BY 1 ORDER BY 1"
+    ).all(since);
+    const signups = db.prepare("SELECT company, email, created_at, attribution FROM accounts WHERE created_at >= ? ORDER BY created_at DESC LIMIT 200").all(since)
+      .map((a) => { let at = {}; try { at = JSON.parse(a.attribution || "{}"); } catch (e) { /* ignore */ } return { company: a.company, email: a.email, at: a.created_at, campaign: at.c || at.utm_campaign || "", recipient: at.r || "" }; });
+    send(res, 200, { days, campaigns, daily, recipients: recipientRows(since).slice(0, 300), signups });
+  });
+
+  route("GET", "/api/admin/recipients.csv", async (req, res, p, body, acct) => {
+    if (!isAdmin(acct)) throw new HttpError(404, "Not found.");
+    const { since } = sinceParam(req);
+    const q = (v) => '"' + String(v).replace(/"/g, '""') + '"';
+    const iso = (t) => new Date(t).toISOString();
+    const lines = ["recipient,campaign,stage,stage_name,first_seen,last_seen,events"].concat(recipientRows(since).map((r) =>
+      [q(r.recipient), q(r.campaign), r.stage, q(r.stageLabel), iso(r.first_seen), iso(r.last_seen), r.events].join(",")));
+    send(res, 200, lines.join("\n") + "\n", { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": 'attachment; filename="recipients.csv"' });
+  });
+
+  async function handleTrack(req, res) {
+    if (req.method !== "POST") { send(res, 405, "Use POST."); return; }
+    if (trackAllow(ip(req))) {
+      let d = {};
+      try { d = JSON.parse(await readRaw(req, 8 * 1024)); } catch (e) { d = {}; }
+      // Sign-ups are recorded by the server itself, so the browser can't fake them.
+      if (d && EVENT_TYPES.includes(d.type) && d.type !== "signup" && validVid(d.vid)) recordEvent(d.vid, d.type, d.label, d.path, cleanAttr(d.attr), d.ref);
+    }
+    res.writeHead(204, { "Cache-Control": "no-store" });
+    res.end();
+  }
+
+  function configJs(res) {
+    const cfg = { metaPixel: clean(env.META_PIXEL_ID, 40), googleTag: clean(env.GOOGLE_TAG_ID, 40), googleSignupConversion: clean(env.GOOGLE_ADS_SIGNUP_CONVERSION, 80) };
+    send(res, 200, "window.CH_CONFIG = " + JSON.stringify(cfg).replace(/</g, "\\u003c") + ";\n", { "Content-Type": "text/javascript; charset=utf-8", "Cache-Control": "public, max-age=300" });
+  }
+
+  // ---------- Twilio webhooks: calls and texts to a roofer's Command Hub number ----------
+  async function handleTwilio(req, res, kind) {
+    const reply = (inner) => { res.writeHead(200, { "Content-Type": "text/xml; charset=utf-8", "Cache-Control": "no-store" }); res.end(tw.twiml(inner)); };
+    if (req.method !== "POST") { send(res, 405, "Use POST."); return; }
+    const params = await readBody(req, 64 * 1024);
+    if (!tw.validSignature(env.TWILIO_AUTH_TOKEN, baseUrl(req) + req.url, params, req.headers["x-twilio-signature"])) { send(res, 403, "Invalid signature."); return; }
+    const acct = accountByNumber(params.To);
+    if (!acct) { reply(kind === "sms" ? "" : "<Say>Sorry, this number is not in service.</Say>"); return; }
+    const s = settingsOf(acct), from = params.From || "";
+    const sorry = s.missedTextOn ? "<Say>Sorry we missed your call. We'll text you right back.</Say><Hangup/>" : "<Say>Sorry we missed your call. Please try again soon.</Say><Hangup/>";
+
+    if (kind === "voice") {
+      const fwd = notify.toE164(acct.forward_phone || acct.notify_phone || acct.phone);
+      if (!fwd) { missedCall(acct, from, req); reply(sorry); return; }
+      const callerId = notify.toE164(from) || acct.twilio_number;
+      reply('<Dial timeout="20" answerOnBridge="true" callerId="' + tw.xml(callerId) + '" action="' + tw.xml(baseUrl(req) + "/twilio/voice/done") + '" method="POST"><Number>' + tw.xml(fwd) + "</Number></Dial>");
+      return;
+    }
+    if (kind === "voice-done") {
+      if (params.DialCallStatus === "completed") {
+        const l = findLeadByPhone(acct, from);
+        if (l) { addActivity(l.id, "Answered a call from " + tw.prettyPhone(from)); broadcast(acct.id, "update", { leadId: l.id }); }
+        reply("");
+      } else {
+        missedCall(acct, from, req);
+        reply(sorry);
+      }
+      return;
+    }
+    // Inbound text
+    const text = cleanText(params.Body, 1600);
+    let l = findLeadByPhone(acct, from);
+    if (!l) {
+      createLead(acct, { name: "Text from " + tw.prettyPhone(from), phone: tw.prettyPhone(from), service: "Text message", message: text }, "Text Message", req, { noAutoReply: true });
+    } else {
+      const now = Date.now();
+      dbm.tx(db, () => {
+        db.prepare("INSERT INTO messages (lead_id, sender, text, at) VALUES (?, 'them', ?, ?)").run(l.id, text, now);
+        addActivity(l.id, "Texted you");
+        db.prepare("INSERT INTO notifications (id, account_id, lead_id, text, detail, at) VALUES (?, ?, ?, ?, ?, ?)")
+          .run(sec.id(), acct.id, l.id, "New text message", l.name + ": " + text.slice(0, 80), now);
+      });
+      broadcast(acct.id, "message", { id: l.id, name: l.name, text: text.slice(0, 140) });
+      if (s.sms && notify.smsConfigured(env) && acct.notify_phone) {
+        notify.sendSms(env, acct.notify_phone, "Text from " + l.name + ": " + text.slice(0, 300) + "\n" + baseUrl(req) + "/app/#lead-" + l.id, acct.twilio_number || undefined)
+          .catch((e) => console.error("forward text", e.message));
+      }
+    }
+    reply("");
+  }
+
+  function missedCall(acct, from, req) {
+    const caller = tw.prettyPhone(from), now = Date.now();
+    let l = findLeadByPhone(acct, from);
+    if (l) {
+      addActivity(l.id, "Missed call from " + caller);
+      db.prepare("INSERT INTO notifications (id, account_id, lead_id, text, detail, at) VALUES (?, ?, ?, ?, ?, ?)").run(sec.id(), acct.id, l.id, "Missed call", l.name + " • " + caller, now);
+      broadcast(acct.id, "lead", { id: l.id, name: l.name, phone: l.phone, service: "Missed call", receivedAt: now });
+    } else {
+      l = createLead(acct, { name: "Caller " + caller, phone: caller, service: "Missed call" }, "Missed Call", req, { noAutoReply: true });
+    }
+    const s = settingsOf(acct);
+    if (s.missedTextOn && notify.toE164(from)) {
+      if (notify.smsConfigured(env)) autoText(acct, l.id, from, fill(s.missedText, acct, null), "Missed-call text");
+      else addActivity(l.id, "Missed-call text skipped: texting is not set up on the server yet");
+    }
+  }
+
   // ---------- Public lead form endpoint ----------
   const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" };
 
@@ -446,6 +679,12 @@ function createApp(opts) {
     try {
       if (pathname === "/healthz") { send(res, 200, "ok"); return; }
 
+      if (pathname === "/t") { await handleTrack(req, res); return; }
+      if (pathname === "/config.js") { configJs(res); return; }
+      if (pathname === "/twilio/voice") { await handleTwilio(req, res, "voice"); return; }
+      if (pathname === "/twilio/voice/done") { await handleTwilio(req, res, "voice-done"); return; }
+      if (pathname === "/twilio/sms") { await handleTwilio(req, res, "sms"); return; }
+
       const formMatch = pathname.match(/^\/f\/([\w-]+)$/);
       if (formMatch) { await handleForm(req, res, formMatch[1]); return; }
 
@@ -474,7 +713,16 @@ function createApp(opts) {
         serveFile(res, path.join(publicDir, "auth.html"));
         return;
       }
+      if (pathname === "/privacy") { serveFile(res, path.join(publicDir, "privacy.html")); return; }
       if (pathname === "/app") { redirect(res, "/app/"); return; }
+      if (pathname === "/admin") {
+        const who = current(req);
+        if (!who) { redirect(res, "/login"); return; }
+        if (!isAdmin(who)) { serveFile(res, path.join(publicDir, "404.html"), 404); return; }
+        serveFile(res, path.join(publicDir, "admin.html"));
+        return;
+      }
+      if (pathname === "/admin.html") { send(res, 404, "Page not found."); return; }
       if (pathname === "/app/" || pathname === "/app/index.html") {
         if (!current(req)) { redirect(res, "/login"); return; }
         serveFile(res, path.join(publicDir, "app", "index.html"));

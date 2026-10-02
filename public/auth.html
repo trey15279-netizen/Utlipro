@@ -103,7 +103,7 @@
           <label>Password <small>At least 8 characters</small><input id="su-password" name="password" type="password" autocomplete="new-password" minlength="8" required /></label>
           <button type="submit">Create my account</button>
         </form>
-        <p class="fine">No credit card needed to start.</p>
+        <p class="fine">No credit card needed to start. <a href="/privacy">Privacy policy</a></p>
         <p class="switch">Already have an account? <a href="/login">Log in</a></p>
       </section>
 
@@ -121,6 +121,8 @@
     </div>
   </main>
 
+  <script src="/config.js"></script>
+  <script src="/track.js"></script>
   <script>
     (function () {
       var mode = location.pathname === "/signup" ? "signup" : "login";
@@ -134,13 +136,15 @@
           err.hidden = true;
           var body = {};
           fields.forEach(function (f) { body[f[0]] = document.getElementById(f[1]).value; });
+          if (formId === "signup-form" && window.chTrack) { var at = window.chTrack.attribution(); body.vid = at.vid; body.attr = at.attr; }
           var btn = form.querySelector("button");
           btn.disabled = true;
           fetch(url, { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
             .then(function (res) {
               return res.json().catch(function () { return {}; }).then(function (d) {
                 if (!res.ok) throw new Error(d.error || "Something went wrong. Please try again.");
-                location.href = "/app/";
+                if (formId === "signup-form" && window.chTrack) { window.chTrack.signedUp(); setTimeout(function () { location.href = "/app/"; }, 300); }
+                else location.href = "/app/";
               });
             })
             .catch(function (e2) {
@@ -152,6 +156,10 @@
       }
       wire("signup-form", "signup-error", "/api/signup", [["company", "su-company"], ["name", "su-name"], ["email", "su-email"], ["phone", "su-phone"], ["password", "su-password"]]);
       wire("login-form", "login-error", "/api/login", [["email", "li-email"], ["password", "li-password"]]);
+      var started = false;
+      document.getElementById("signup-form").addEventListener("input", function () {
+        if (!started && window.chTrack) { started = true; window.chTrack.event("signup_start"); }
+      });
       document.getElementById(mode === "signup" ? "su-company" : "li-email").focus();
     })();
   </script>

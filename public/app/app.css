@@ -294,6 +294,13 @@ h1, h2, h3 { color: var(--ink); margin: 0; letter-spacing: -0.01em; text-wrap: b
 .bubble.them { background: var(--gray-50); color: var(--ink); align-self: flex-start; border-bottom-left-radius: 4px; }
 .bubble.you { background: var(--blue); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
 .hint { font-size: 12px; color: var(--muted); margin: 6px 0 0; }
+.bubble.auto { background: #4b7cf0; }
+.reply-form { display: grid; gap: 8px; padding: 0 0 12px 30px; }
+.reply-form .textarea { min-height: 80px; font-size: 13.5px; }
+.line-help { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 12px; }
+.line-help summary { cursor: pointer; color: var(--blue); font-weight: 600; font-size: 13px; }
+.line-help .field { margin-top: 10px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 .timeline { list-style: none; margin: 0; padding: 0; }
 .timeline li { position: relative; padding: 0 0 16px 22px; font-size: 13.5px; color: var(--ink); }
@@ -473,6 +480,7 @@ h1, h2, h3 { color: var(--ink); margin: 0; letter-spacing: -0.01em; text-wrap: b
   .dl dd { margin-bottom: 10px; }
   .form-grid { grid-template-columns: 1fr; }
   .menu-panel { padding-left: 4px; }
+  .reply-form { padding-left: 0; }
   .alert { padding: 0; }
   .alert-screen { width: 100%; height: 100%; border-radius: 0; padding-top: calc(16px + env(safe-area-inset-top, 0px)); padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
 }
