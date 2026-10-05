@@ -39,6 +39,13 @@
     return String(name || "").trim().split(/\s+/).map(function (w) { return w[0]; }).slice(0, 2).join("").toUpperCase() || "?";
   }
 
+  var AVATAR_TONES = 6;
+  function avatar(name, cls) {
+    var k = 0, n = String(name || "");
+    for (var i = 0; i < n.length; i++) k = (k * 31 + n.charCodeAt(i)) % 997;
+    return '<span class="avatar t' + (k % AVATAR_TONES) + (cls ? " " + cls : "") + '" aria-hidden="true">' + esc(initials(n)) + "</span>";
+  }
+
   var STATUS = {
     new: { label: "New", cls: "new" },
     contacted: { label: "Contacted", cls: "contacted" },
@@ -151,53 +158,66 @@
   }
 
   // ---------- Views ----------
-  function greeting() {
-    var h = new Date().getHours();
-    return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
-  }
-
   function welcomeNotice() {
     if (prefs.hideWelcome || state.lastWebsiteLeadAt) return "";
-    return '<div class="notice">' + ic("i-bolt") + '<span>Welcome to Command Hub! <a class="link" href="#connection">Connect your website form</a> to start getting leads, or tap <strong>Test Lead</strong> to see an instant alert.</span>' +
+    return '<div class="notice">' + ic("i-bolt") + '<span>Welcome to Command Hub! <a class="link" href="#connection">Connect your website form</a> to start getting leads, or tap <strong>Send test lead</strong> to see an instant alert.</span>' +
       '<button type="button" data-action="hide-notice" aria-label="Dismiss">' + ic("i-x") + "</button></div>";
   }
 
+  function firstReplyMinutes(l) {
+    var hit = (l.activity || []).filter(function (a) { return /^(Called|Texted) /.test(a.text); })[0];
+    return hit ? Math.max(0, (hit.at - l.receivedAt) / MIN) : null;
+  }
+
   function viewDashboard() {
-    var s = state.settings, last = lastLead(), connected = !!state.lastWebsiteLeadAt;
-    var newC = count("new"), contacted = count("contacted") + count("appointment"), won = count("won"), missed = count("missed");
-    var stat = function (tab, icon, tone, n, label, sub) {
-      return '<button type="button" class="card stat" data-action="goto-tab" data-tab="' + tab + '">' +
-        '<span class="stat-ico ' + tone + '">' + ic(icon) + "</span>" +
-        '<span><b>' + n + '</b><span class="lbl">' + label + "</span><small>" + sub + "</small></span>" + ic("i-chev") + "</button>";
+    var connected = !!state.lastWebsiteLeadAt, n = {};
+    Object.keys(STATUS).forEach(function (k) { n[k] = count(k); });
+    var today = startOfDay(Date.now()), week = countBetween(today - 6 * DAY, today + DAY), prev = countBetween(today - 13 * DAY, today - 6 * DAY);
+    var waits = state.leads.map(firstReplyMinutes).filter(function (m) { return m != null; }).sort(function (a, b) { return a - b; });
+    var median = waits.length ? waits[Math.floor(waits.length / 2)] : null;
+    var medTxt = median == null ? "&ndash;" : median < 60 ? Math.max(1, Math.round(median)) + "<small> min</small>" : (median / 60).toFixed(1) + "<small> hr</small>";
+
+    var kpi = function (tab, label, value, sub, warn) {
+      return '<button type="button" class="kpi" data-action="goto-tab" data-tab="' + tab + '"><span class="k">' + label + '</span><span class="v num">' + value +
+        '</span><span class="sub' + (warn ? " warn" : "") + '">' + sub + "</span></button>";
     };
-    var recent = sorted().slice(0, 5).map(function (l) {
-      return '<li><a href="#lead-' + l.id + '"><span class="avatar">' + ic("i-user") + '</span><span class="who"><strong>' + esc(l.name) +
-        "</strong><span>" + esc(l.service || l.source) + '</span></span><span class="when">' + relEl(l.receivedAt) + "</span>" + pill(l.status) + ic("i-chev", "ico chev") + "</a></li>";
+    var vsPrev = prev ? (week >= prev ? "+" : "") + Math.round((week - prev) / prev * 100) + "% vs the 7 days before" : "Since you started";
+
+    var recent = sorted().slice(0, 6).map(function (l) {
+      var end = l.status === "new" && l.phone
+        ? '<a class="btn btn-call btn-sm" href="' + telHref(l.phone) + '" data-action="call" data-id="' + l.id + '">' + ic("i-call") + "Call</a>"
+        : '<span class="st ' + (STATUS[l.status] || STATUS.new).cls + '">' + (STATUS[l.status] || STATUS.new).label + "</span>";
+      return '<li><a class="lrow" href="#lead-' + l.id + '">' + avatar(l.name) + '<span class="who"><strong>' + esc(l.name) + "</strong><span>" +
+        esc([l.service || l.source, l.city].filter(Boolean).join(" · ")) + '</span></span><span class="when">' + relEl(l.receivedAt) + "</span></a>" +
+        '<span class="end">' + end + "</span></li>";
+    }).join("");
+
+    var SEG = [["new", "#1463ff"], ["contacted", "#7aa2f0"], ["appointment", "#6d3fd8"], ["won", "#16a34a"], ["missed", "#e0736b"], ["lost", "#c7ccd6"]];
+    var total = state.leads.length;
+    var bar = SEG.map(function (x) { return n[x[0]] ? '<i style="flex:' + n[x[0]] + ";background:" + x[1] + '" title="' + STATUS[x[0]].label + ": " + n[x[0]] + '"></i>' : ""; }).join("");
+    var legend = SEG.map(function (x) {
+      return '<button type="button" class="lg" data-action="goto-tab" data-tab="' + x[0] + '"><span class="sw" style="background:' + x[1] + '"></span>' + STATUS[x[0]].label + '<b class="num">' + n[x[0]] + "</b></button>";
     }).join("");
 
     return welcomeNotice() +
-      '<div class="dash-head"><div><h1>' + greeting() + ", " + esc(firstName(s.owner)) + '.</h1><p>Here\'s what\'s happening with your leads today.</p></div>' +
-      '<a href="#connection" class="conn-chip' + (connected ? "" : " wait") + '"><span class="ok">' + ic(connected ? "i-check" : "i-globe") + "</span><div><strong>" +
-      (connected ? "Website Connected" : "Connect Your Website") + "</strong><span>" +
-      (connected ? "Last website lead " + relEl(state.lastWebsiteLeadAt) + "." : "Add your form to start receiving leads.") + "</span></div>" + ic("i-chev") + "</a></div>" +
-      '<div class="stats">' +
-      stat("new", "i-bell", "tone-blue", newC, "New Leads", "Need your attention") +
-      stat("contacted", "i-phone", "tone-teal", contacted, "Contacted", "Called or texted") +
-      stat("won", "i-check", "tone-green", won, "Won / Closed", "Jobs completed") +
-      stat("missed", "i-x", "tone-red", missed, "Missed", "Not contacted within 24 hours") +
+      '<div class="dhead"><div><h1>Dashboard</h1><p>' + esc(new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })) + ' · <a href="#connection" class="live' + (connected ? "" : " wait") + '"><span class="dot"></span>' +
+      (connected ? "Website connected" : "Website not connected yet") + "</a></p></div>" +
+      '<div class="dacts"><button type="button" class="btn btn-ghost btn-sm" data-action="test-lead">Send test lead</button><a href="#leads" class="btn btn-primary btn-sm" data-action="goto-tab" data-tab="all">All leads</a></div></div>' +
+      '<div class="kpis">' +
+      kpi("all", "Leads, last 7 days", week, vsPrev) +
+      kpi("new", "Waiting on a call", n.new, n.new ? "Call these first" : "All caught up", n.new > 0) +
+      kpi("contacted", "Median time to call", medTxt, "From form to first call or text") +
+      kpi("appointment", "Inspections booked", n.appointment + n.won, n.won + (n.won === 1 ? " turned into a job" : " turned into jobs")) +
       "</div>" +
       '<div class="dash-grid">' +
-      '<section class="card card-pad"><div class="card-head"><h2>Recent Lead Activity</h2><a href="#leads" class="link" data-action="goto-tab" data-tab="all">View All</a></div>' +
-      (recent ? '<ul class="recent">' + recent + "</ul>" : '<div class="empty"><strong>No leads yet</strong>New website leads show up here the moment they arrive.<br/><br/><button type="button" class="btn btn-primary btn-sm" data-action="test-lead">' + ic("i-bolt") + "Send a Test Lead</button></div>") +
+      '<section class="card card-pad"><div class="card-head"><h2>Latest leads</h2><a href="#leads" class="link" data-action="goto-tab" data-tab="all">View all</a></div>' +
+      (recent ? '<ul class="recent">' + recent + "</ul>" : '<div class="empty"><strong>No leads yet</strong>New website leads show up here the moment they arrive.<br/><br/><button type="button" class="btn btn-primary btn-sm" data-action="test-lead">Send a test lead</button></div>') +
       "</section>" +
       '<div class="dash-right">' +
       '<section class="card card-pad">' + chartCard() + "</section>" +
-      '<section class="card card-pad"><div class="card-head"><h2>Quick Actions</h2></div><div class="quick">' +
-      '<a href="#leads" class="btn btn-primary" data-action="goto-tab" data-tab="all">View All Leads</a>' +
-      '<button type="button" class="btn btn-ghost" data-action="test-lead">' + ic("i-chat") + "Test Lead</button>" +
-      (last && last.phone ? '<a class="btn btn-call" href="' + telHref(last.phone) + '" data-action="call" data-id="' + last.id + '">' + ic("i-call") + "Call newest lead</a>" : "") +
-      '<a href="#connection" class="btn btn-ghost">' + ic("i-globe") + "Website Setup</a>" +
-      "</div></section></div></div>";
+      '<section class="card card-pad"><div class="card-head"><h2>Pipeline</h2><span class="meta num">' + total + " lead" + (total === 1 ? "" : "s") + "</span></div>" +
+      (total ? '<div class="pbar">' + bar + "</div>" : "") + '<div class="legend">' + legend + "</div></section>" +
+      "</div></div>";
   }
 
   function countBetween(from, to) {
@@ -213,34 +233,22 @@
   }
   function chartCard() {
     var data = weekData(), total = data.reduce(function (a, d) { return a + d.n; }, 0);
-    var today = startOfDay(Date.now()), lastWeek = countBetween(today - 13 * DAY, today - 6 * DAY);
-    var trend = "";
-    if (lastWeek) {
-      var pct = Math.round((total - lastWeek) / lastWeek * 100);
-      trend = '<span class="trend' + (pct < 0 ? " down" : "") + '">' + (pct >= 0 ? "+" : "") + pct + "% " + ic("i-arrow-ur") + "</span>";
-    }
-    var W = 340, H = 150, L = 26, R = 20, T = 14, B = 22;
-    var max = Math.max(4, Math.ceil(Math.max.apply(null, data.map(function (d) { return d.n; })) / 4) * 4); // 4 even, whole-number steps
-    var x = function (i) { return L + i * (W - L - R) / 6; };
+    var W = 340, H = 140, L = 22, R = 4, T = 8, B = 22;
+    var max = Math.max(4, Math.ceil(Math.max.apply(null, data.map(function (d) { return d.n; })) / 4) * 4);
+    var step = (W - L - R) / 7, bw = Math.min(26, step * 0.52);
     var y = function (v) { return T + (H - T - B) * (1 - v / max); };
-    var ticks = "", step = max / 4;
-    for (var k = 0; k <= 4; k++) {
-      var v = k * step;
-      ticks += '<line class="grid" x1="' + L + '" x2="' + (W - R) + '" y1="' + y(v) + '" y2="' + y(v) + '"/>' +
+    var ticks = "";
+    [0, max / 2, max].forEach(function (v) {
+      ticks += '<line class="grid' + (v ? " dash" : "") + '" x1="' + L + '" x2="' + (W - R) + '" y1="' + y(v) + '" y2="' + y(v) + '"/>' +
         '<text x="' + (L - 6) + '" y="' + (y(v) + 3) + '" text-anchor="end">' + v + "</text>";
-    }
-    var pts = data.map(function (d, i) { return x(i).toFixed(1) + "," + y(d.n).toFixed(1); });
-    var area = "M" + x(0) + "," + y(0) + " L" + pts.join(" L") + " L" + x(6) + "," + y(0) + " Z";
-    var dots = data.map(function (d, i) {
-      return '<circle class="pt' + (i === 6 ? " end" : "") + '" cx="' + x(i) + '" cy="' + y(d.n) + '" r="' + (i === 6 ? 4.5 : 3) + '"><title>' + d.label + ": " + d.n + " leads</title></circle>" +
-        '<text x="' + x(i) + '" y="' + (H - 6) + '" text-anchor="middle">' + (i === 6 ? "Today" : d.label) + "</text>";
+    });
+    var bars = data.map(function (d, i) {
+      var x = L + step * i + (step - bw) / 2, top = y(d.n), today = i === 6;
+      return '<rect class="b' + (today ? " today" : "") + '" x="' + x.toFixed(1) + '" y="' + top.toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + Math.max(1, y(0) - top).toFixed(1) + '" rx="3"><title>' + d.label + ": " + d.n + " leads</title></rect>" +
+        '<text class="' + (today ? "today" : "") + '" x="' + (x + bw / 2).toFixed(1) + '" y="' + (H - 6) + '" text-anchor="middle">' + (today ? "Today" : d.label) + "</text>";
     }).join("");
-    var endLabel = '<text class="val" x="' + (x(6) - 8) + '" y="' + (y(data[6].n) - 9) + '" text-anchor="end">' + data[6].n + "</text>";
-    return '<div class="card-head"><h2>Leads This Week</h2>' + trend + "</div>" +
-      '<svg class="chart" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="' + total + ' leads in the last 7 days">' +
-      '<defs><linearGradient id="area" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#1463ff" stop-opacity=".22"/><stop offset="1" stop-color="#1463ff" stop-opacity="0"/></linearGradient></defs>' +
-      ticks + '<path d="' + area + '" fill="url(#area)"/><polyline class="ln" points="' + pts.join(" ") + '"/>' + dots + endLabel + "</svg>" +
-      '<p class="hint">' + total + " lead" + (total === 1 ? "" : "s") + " in the last 7 days" + (lastWeek ? ", compared with " + lastWeek + " the week before." : ".") + "</p>";
+    return '<div class="card-head"><h2>Leads by day</h2><span class="meta">Last 7 days</span></div>' +
+      '<svg class="chart" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="' + total + ' leads in the last 7 days">' + ticks + bars + "</svg>";
   }
 
   var TABS = [["all", "All"], ["new", "New"], ["contacted", "Contacted"], ["appointment", "Appointments"], ["won", "Won"], ["missed", "Missed"], ["lost", "Lost"]];
@@ -280,7 +288,7 @@
     var rows = list.map(function (l) {
       return '<div class="lt-row' + (ui.sel[l.id] ? " sel" : "") + '" data-open="' + l.id + '">' +
         '<input type="checkbox" class="check" data-action="sel" data-id="' + l.id + '" aria-label="Select ' + esc(l.name) + '"' + (ui.sel[l.id] ? " checked" : "") + "/>" +
-        '<div class="lt-cust"><span class="avatar">' + ic("i-user") + '</span><span class="who"><strong>' + esc(l.name) + '</strong><span class="num">' + esc(l.phone || l.email) + "</span></span></div>" +
+        '<div class="lt-cust">' + avatar(l.name) + '<span class="who"><strong>' + esc(l.name) + '</strong><span class="num">' + esc(l.phone || l.email) + "</span></span></div>" +
         '<span class="lt-cell lt-svc">' + esc(l.service || "—") + "</span>" +
         '<span class="lt-cell lt-source">' + esc(l.source) + "</span>" +
         '<span class="lt-cell lt-when">' + relEl(l.receivedAt) + "</span>" +
@@ -345,7 +353,7 @@
 
     return '<a href="#leads" class="back">' + ic("i-back") + "Back to Leads</a>" +
       '<div class="detail-grid"><div class="stack">' +
-      '<section class="card card-pad"><div class="profile"><span class="avatar">' + ic("i-user") + "</span>" +
+      '<section class="card card-pad"><div class="profile">' + avatar(l.name, "lg") +
       '<div class="profile-info"><h1>' + esc(l.name) + " " + pill(l.status) + "</h1>" +
       '<ul class="contact-list">' + (l.phone ? "<li>" + ic("i-phone") + '<span class="num">' + esc(l.phone) + "</span></li>" : "") +
       (l.email ? "<li>" + ic("i-mail") + esc(l.email) + "</li>" : "") +
