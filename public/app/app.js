@@ -411,7 +411,7 @@
       '<section class="card card-pad"><div class="conn-status"><span class="big-dot' + (connected ? "" : " wait") + '"></span><div style="flex:1">' +
       '<h2 class="' + (connected ? "" : "wait") + '">' + (connected ? "Connected" : "Waiting for your first lead") + "</h2>" +
       '<p class="muted" style="margin:4px 0 0">' + (connected ? "Last lead received: " + relEl(state.lastWebsiteLeadAt) : "Add the form below to your website. This turns green when the first lead arrives.") + "</p></div>" +
-      (lastSite ? '<a class="link" href="#lead-' + lastSite.id + '">View Lead</a>' : "") + "</div>" +
+      (lastSite ? '<a class="link" href="#lead-' + lastSite.id + '">View Lead</a>' : '<button type="button" class="btn btn-primary btn-sm" data-wiz="open">Guided setup</button>') + "</div>" +
       '<div class="form-actions" style="margin-top:16px"><button type="button" class="btn btn-primary btn-sm" data-action="test-lead">' + ic("i-bolt") + "Send a test lead</button></div></section>" +
       '<section class="card card-pad"><h3 class="section-title">Connection Details</h3><form id="site-form" class="kv">' +
       '<div class="field"><label for="site-url">Website URL</label><input id="site-url" class="input" type="url" value="' + esc(s.website) + '" placeholder="https://yourwebsite.com"/></div>' +
@@ -811,7 +811,104 @@
     if (document.visibilityState === "visible" && state) backgroundRefresh().catch(function () {});
   });
 
-  refresh().then(listen, function (e) {
+
+  // ---------- Welcome walkthrough (first visit) ----------
+  // Placeholder until there's a real support inbox.
+  var SUPPORT_EMAIL = "hello@commandhub.co";
+  var BUILDERS = {
+    wordpress: ["WordPress", ["Add a Custom HTML block where you want the form, and paste the form code below.", "Already use a form plugin? Turn on its webhook add-on and send new entries to your form address instead.", "Submit the form once to test it."]],
+    wix: ["Wix", ["Add an Embed HTML element where you want the form.", "Paste the form code below.", "Publish, then submit the form once to test it."]],
+    squarespace: ["Squarespace", ["Add a Code block where you want the form.", "Paste the form code below.", "Save, then submit the form once to test it."]],
+    webflow: ["Webflow", ["Add an Embed element where you want the form.", "Paste the form code below.", "Publish, then submit the form once to test it."]],
+    godaddy: ["GoDaddy", ["Add an HTML section where you want the form.", "Paste the form code below.", "Publish, then submit the form once to test it."]],
+    other: ["Other / not sure", ["Paste the form code anywhere your site lets you add HTML.", "Not sure how? Tap “Do it for me” and we’ll set it up.", "Submit the form once to test it."]]
+  };
+  var wiz = { open: false, i: 0, builder: prefs.builder || "", busy: false };
+  function siteHost(u) { return String(u || "").replace(/^https?:\/\//i, "").replace(/\/.*$/, ""); }
+  function wizSlides() {
+    var s = state.settings, b = BUILDERS[wiz.builder];
+    var chips = Object.keys(BUILDERS).map(function (k) {
+      return '<button type="button" class="wz-chip' + (wiz.builder === k ? " on" : "") + '" data-wiz="builder" data-k="' + k + '" aria-pressed="' + (wiz.builder === k) + '">' + BUILDERS[k][0] + "</button>";
+    }).join("");
+    var help = b ? '<ol class="wz-steps">' + b[1].map(function (t) { return "<li>" + esc(t) + "</li>"; }).join("") + "</ol>" +
+      '<div class="wz-copy"><span>Form code</span><textarea id="wz-snippet" class="input num" rows="4" readonly>' + esc(snippet()) + '</textarea><button type="button" class="btn btn-ghost btn-sm" data-wiz="copy-snippet">Copy form code</button></div>' +
+      '<div class="wz-copy"><span>Your form address</span><div class="inline-form"><input id="wz-url" class="input num" readonly value="' + esc(state.formUrl) + '"/><button type="button" class="btn btn-ghost btn-sm" data-wiz="copy-url">Copy</button></div></div>'
+      : '<p class="wz-fine">Pick the one your site is built with to see the steps.</p>';
+    return [
+      { t: "Welcome to Command Hub", b: '<p class="wz-lead">Every time a homeowner fills out your website form, you’ll get a text with their name, number and job, so you can call back first.</p><p class="wz-sub">Let’s get you set up. It takes about 2 minutes.</p>' },
+      { t: "How it works", b: '<ul class="wz-how"><li><span>' + ic("i-globe") + '</span><div><strong>A homeowner fills out your form</strong><small>The form on your website keeps working the same way.</small></div></li><li><span>' + ic("i-bell") + '</span><div><strong>You get a text right away</strong><small>Name, phone, job and their message.</small></div></li><li><span>' + ic("i-call") + '</span><div><strong>Tap to call or text back</strong><small>Every lead is saved in your dashboard.</small></div></li></ul>' },
+      { t: "Where should we send alerts?", b: '<p class="wz-sub">We’ll text new leads to this number.</p><div class="field"><label for="wz-company">Company name</label><input id="wz-company" class="input" autocomplete="organization" value="' + esc(s.company) + '"/></div><div class="field"><label for="wz-phone">Cell phone for alerts</label><input id="wz-phone" class="input" type="tel" inputmode="tel" autocomplete="tel" value="' + esc(s.notifyPhone || s.phone || "") + '"/></div>' },
+      { t: "Connect your website", b: '<div class="field"><label for="wz-site">Your website</label><input id="wz-site" class="input" type="url" inputmode="url" placeholder="yourroofingsite.com" value="' + esc(s.website || "") + '"/></div><div class="field"><label>What is it built with?</label><div class="wz-chips">' + chips + "</div></div>" + help +
+          '<button type="button" class="wz-diy" data-wiz="diy">' + ic("i-check") + " Do it for me. Have Command Hub connect it.</button>" },
+      { t: "You’re all set", b: '<ul class="wz-done"><li>' + ic("i-check") + "<span>Alerts go to <strong>" + esc(s.notifyPhone || s.phone || "your phone") + "</strong></span></li><li>" + ic("i-check") + "<span>" +
+          (s.website ? "Website: <strong>" + esc(siteHost(s.website)) + "</strong>" + (wiz.builder ? " (" + BUILDERS[wiz.builder][0] + ")" : "") + ". This turns green when its first lead arrives." : "Website: not added yet. You can do it any time from <strong>Website Connection</strong>.") +
+          "</span></li><li>" + ic("i-check") + "<span>Send yourself a test lead to see exactly what you’ll get.</span></li></ul>" }
+    ];
+  }
+  function renderWizard() {
+    var box = $("#welcome");
+    if (!wiz.open || !state) { box.hidden = true; box.innerHTML = ""; return; }
+    var sl = wizSlides(), n = sl.length, x = sl[wiz.i], last = wiz.i === n - 1;
+    var dots = sl.map(function (_, k) { return '<i class="' + (k === wiz.i ? "on" : k < wiz.i ? "past" : "") + '"></i>'; }).join("");
+    box.hidden = false;
+    box.innerHTML = '<div class="wz-card" role="dialog" aria-modal="true" aria-labelledby="wz-title">' +
+      '<div class="wz-top"><div class="wz-dots" aria-hidden="true">' + dots + '</div><button type="button" class="wz-skip" data-wiz="close">' + (last ? "Close" : "Skip for now") + "</button></div>" +
+      '<div class="wz-body"><span class="wz-step">Step ' + (wiz.i + 1) + " of " + n + '</span><h2 id="wz-title" tabindex="-1">' + x.t + "</h2>" + x.b + "</div>" +
+      '<div class="wz-nav">' + (wiz.i ? '<button type="button" class="btn btn-ghost" data-wiz="back">Back</button>' : "<span></span>") +
+      (last ? '<div class="wz-end"><button type="button" class="btn btn-ghost" data-wiz="close">Go to dashboard</button><button type="button" class="btn btn-primary" data-wiz="test">Send a test lead</button></div>'
+            : '<button type="button" class="btn btn-primary" data-wiz="next"' + (wiz.busy ? " disabled" : "") + ">" + (wiz.i === 0 ? "Get started" : "Next") + "</button>") +
+      "</div></div>";
+    var t = $("#wz-title"); if (t) t.focus();
+  }
+  function openWizard(step) { wiz.open = true; wiz.i = step || 0; renderWizard(); }
+  function closeWizard() { wiz.open = false; prefs.welcomeDone = true; savePrefs(); renderWizard(); }
+  // Saves what's on the current step. Resolves when it's safe to move on.
+  function saveStep() {
+    if (wiz.i === 2) {
+      var company = $("#wz-company").value.trim(), phone = $("#wz-phone").value.trim();
+      if (!phone) { toast("Add the cell phone number for alerts."); return Promise.reject(); }
+      return api("PATCH", "/api/account", { company: company || state.settings.company, notifyPhone: phone }).then(refresh);
+    }
+    if (wiz.i === 3) {
+      var site = $("#wz-site").value.trim();
+      if (site && !/^https?:\/\//i.test(site)) site = "https://" + site;
+      if (site === (state.settings.website || "")) return Promise.resolve();
+      return api("PATCH", "/api/account", { website: site }).then(refresh);
+    }
+    return Promise.resolve();
+  }
+  document.addEventListener("click", function (e) {
+    var el = e.target.closest("[data-wiz]"); if (!el || !state) return;
+    var a = el.getAttribute("data-wiz");
+    if (a === "open") { openWizard(3); return; }
+    if (a === "next") {
+      wiz.busy = true; el.disabled = true;
+      saveStep().then(function () { wiz.i++; }, function (err) { if (err) toast(err.message); }).then(function () { wiz.busy = false; renderWizard(); });
+    }
+    else if (a === "back") { wiz.i = Math.max(0, wiz.i - 1); renderWizard(); }
+    else if (a === "close") { closeWizard(); }
+    else if (a === "test") { closeWizard(); go("dashboard"); api("POST", "/api/leads/test", {}).catch(function (err) { toast(err.message); }); }
+    else if (a === "builder") {
+      var site = $("#wz-site") ? $("#wz-site").value : "";
+      wiz.builder = el.getAttribute("data-k"); prefs.builder = wiz.builder; savePrefs(); renderWizard();
+      if ($("#wz-site")) $("#wz-site").value = site;
+    }
+    else if (a === "copy-snippet") copyText(snippet(), "#wz-snippet");
+    else if (a === "copy-url") copyText(state.formUrl, "#wz-url");
+    else if (a === "diy") {
+      var s = state.settings, siteNow = $("#wz-site") ? $("#wz-site").value.trim() : s.website;
+      var body = "Please connect my website to Command Hub.\n\nCompany: " + s.company + "\nWebsite: " + (siteNow || "(not sure)") + "\nBuilt with: " + (wiz.builder ? BUILDERS[wiz.builder][0] : "(not sure)") +
+        "\nAlert phone: " + (s.notifyPhone || s.phone || "") + "\nForm address: " + state.formUrl;
+      location.href = "mailto:" + SUPPORT_EMAIL + "?subject=" + encodeURIComponent("Connect my website") + "&body=" + encodeURIComponent(body);
+      toast("Opening your email. Send it and we’ll connect your form.");
+    }
+  });
+  document.addEventListener("keydown", function (e) { if (wiz.open && e.key === "Escape") closeWizard(); });
+  function maybeWelcome() {
+    if (!prefs.welcomeDone && !state.lastWebsiteLeadAt && !state.leads.length) openWizard(0);
+  }
+
+  refresh().then(function () { maybeWelcome(); listen(); }, function (e) {
     $("#view").innerHTML = '<div class="card empty"><strong>Couldn\'t load your leads</strong>' + esc(e.message) +
       '<br/><br/><button type="button" class="btn btn-primary btn-sm" onclick="location.reload()">Try again</button></div>';
   });

@@ -27,7 +27,8 @@ const STAGES = ["", "Visited", "Viewed pricing", "Clicked demo or trial", "Start
 const MIME = {
   ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8",
   ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".ico": "image/x-icon",
-  ".webp": "image/webp", ".txt": "text/plain; charset=utf-8", ".woff2": "font/woff2"
+  ".webp": "image/webp", ".txt": "text/plain; charset=utf-8", ".woff2": "font/woff2",
+  ".mp4": "video/mp4", ".webm": "video/webm"
 };
 const TEST_LEADS = [
   ["Emily Johnson", "(864) 555-0142", "Storm Damage", "Greenville, SC", "Tree limb came down on the roof last night. Need someone ASAP."],
@@ -657,7 +658,9 @@ function createApp(opts) {
   }
 
   // ---------- Static files ----------
-  function serveFile(res, file, status) {
+  function serveFile(res, file, status, req) {
+    const ext = path.extname(file).toLowerCase();
+    if (ext === ".mp4" || ext === ".webm") { serveMedia(req, res, file, ext); return; }
     fs.readFile(file, (err, data) => {
       if (err) { send(res, 404, "Page not found."); return; }
       const ext = path.extname(file).toLowerCase();
@@ -666,6 +669,31 @@ function createApp(opts) {
         "Cache-Control": ext === ".html" ? "no-cache" : "public, max-age=300"
       });
       res.end(data);
+    });
+  }
+
+  // Video needs byte ranges: Safari won't play it otherwise, and seeking uses them too.
+  function serveMedia(req, res, file, ext) {
+    fs.stat(file, (err, st) => {
+      if (err || !st.isFile()) { send(res, 404, "Page not found."); return; }
+      const headers = { "Content-Type": MIME[ext], "Accept-Ranges": "bytes", "Cache-Control": "public, max-age=86400" };
+      const m = /^bytes=(\d*)-(\d*)$/.exec((req && req.headers.range) || "");
+      if (!m || (!m[1] && !m[2])) {
+        res.writeHead(200, Object.assign(headers, { "Content-Length": st.size }));
+        if (req && req.method === "HEAD") { res.end(); return; }
+        fs.createReadStream(file).pipe(res);
+        return;
+      }
+      let start = m[1] ? Number(m[1]) : Math.max(0, st.size - Number(m[2]));
+      let end = m[1] && m[2] ? Math.min(Number(m[2]), st.size - 1) : st.size - 1;
+      if (start >= st.size || start > end) {
+        res.writeHead(416, { "Content-Range": "bytes */" + st.size });
+        res.end();
+        return;
+      }
+      res.writeHead(206, Object.assign(headers, { "Content-Range": "bytes " + start + "-" + end + "/" + st.size, "Content-Length": end - start + 1 }));
+      if (req.method === "HEAD") { res.end(); return; }
+      fs.createReadStream(file, { start: start, end: end }).pipe(res);
     });
   }
 
@@ -731,7 +759,7 @@ function createApp(opts) {
       const file = path.normalize(path.join(publicDir, pathname.endsWith("/") ? pathname + "index.html" : pathname));
       if (!file.startsWith(publicDir + path.sep)) { send(res, 404, "Page not found."); return; }
       fs.stat(file, (err, st) => {
-        if (!err && st.isFile()) serveFile(res, file);
+        if (!err && st.isFile()) serveFile(res, file, 200, req);
         else serveFile(res, path.join(publicDir, "404.html"), 404);
       });
     } catch (e) {

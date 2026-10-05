@@ -160,9 +160,14 @@ test("new leads go untouched for 24 hours become missed", async () => {
 test("pages are served and paths can't escape the public folder", async () => {
   const { server, base } = await start();
   try {
-    assert.match(await (await fetch(base + "/")).text(), /Never Miss Another/);
+    assert.match(await (await fetch(base + "/")).text(), /Every Roofing Lead/);
     assert.match(await (await fetch(base + "/signup")).text(), /Start your free trial/);
-    assert.strictEqual((await fetch(base + "/styles.css")).status, 200);
+    assert.strictEqual((await fetch(base + "/site.css")).status, 200);
+    const vid = await fetch(base + "/demo.mp4", { headers: { Range: "bytes=0-99" } });
+    assert.strictEqual(vid.status, 206);
+    assert.match(vid.headers.get("content-range"), /^bytes 0-99\/\d+$/);
+    assert.strictEqual((await vid.arrayBuffer()).byteLength, 100);
+    assert.strictEqual((await fetch(base + "/demo.mp4", { headers: { Range: "bytes=999999999-" } })).status, 416);
     assert.strictEqual((await fetch(base + "/nope")).status, 404);
     assert.strictEqual((await fetch(base + "/..%2fserver.js")).status, 404);
     assert.strictEqual((await fetch(base + "/healthz")).status, 200);

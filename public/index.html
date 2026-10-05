@@ -3,296 +3,408 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Command Hub — Never Miss Another Roofing Lead</title>
-  <meta name="description" content="Command Hub instantly alerts you when a new roofing lead comes in, so you can call or text right away." />
+  <title>Command Hub — Every Roofing Lead, Alerted and Captured</title>
+  <meta name="description" content="Command Hub texts you every new roofing lead the moment your website form is submitted, so you can call back first." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..800&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/site.css" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath d='M20 2 36 11v18L20 38 4 29V11z' fill='%231463ff'/%3E%3Cpath d='M26 14.5a8 8 0 1 0 0 11' fill='none' stroke='%23fff' stroke-width='4.5' stroke-linecap='round'/%3E%3C/svg%3E" />
 </head>
 <body>
-  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
-    <defs>
-      <symbol id="logo" viewBox="0 0 40 40">
-        <path d="M20 2 36 11v18L20 38 4 29V11z" fill="currentColor" />
-        <path d="M26 14.5a8 8 0 1 0 0 11" fill="none" style="stroke: var(--logo-inner, #fff)" stroke-width="4.5" stroke-linecap="round" />
-      </symbol>
-      <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></symbol>
-      <symbol id="i-phone" viewBox="0 0 24 24"><path d="M5 3h3l2 5-2.5 1.5a11 11 0 0 0 6 6L15 13l5 2v3a2 2 0 0 1-2 2A16 16 0 0 1 3 5a2 2 0 0 1 2-2z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M15 3a6 6 0 0 1 6 6M15 6.5A2.5 2.5 0 0 1 17.5 9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
-      <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 21h18M5 18v-5M8 18v-8M11 18v-4M14 18V7M17 18v-6M20 18V4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
-      <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="m8.5 12 2.5 2.5 4.5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
-      <symbol id="i-mobile" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10.5 18.5h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
-      <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="9" r="3.5" fill="currentColor"/><path d="M5.5 19a6.5 6.5 0 0 1 13 0" fill="currentColor"/></symbol>
-      <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20a2 2 0 0 0 4 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></symbol>
-      <symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.2" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.2" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.2" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.2" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
-      <symbol id="i-cog" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
-      <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z" fill="currentColor"/><path d="M8 9.5h8M8 12.5h5" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></symbol>
-      <symbol id="i-call" viewBox="0 0 24 24"><path d="M6 3h3l2 5-2.5 1.5a11 11 0 0 0 6 6L16 13l5 2v3a2 2 0 0 1-2 2A16 16 0 0 1 4 5a2 2 0 0 1 2-2z" fill="currentColor"/></symbol>
-      <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
-      <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="currentColor"/><path d="m7 12.5 3 3 7-7" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
-      <symbol id="i-play" viewBox="0 0 24 24"><path d="M9 7v10l8-5z" fill="currentColor"/></symbol>
-      <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m20 20-4.5-4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
-      <symbol id="i-lock" viewBox="0 0 24 24"><rect x="6" y="11" width="12" height="9" rx="2" fill="currentColor"/><path d="M8.5 11V8a3.5 3.5 0 0 1 7 0v3" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
-    </defs>
-  </svg>
+<div id="v-site" class="s-site">
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="Command Hub home">
+      <svg width="30" height="30" viewBox="0 0 34 34" aria-hidden="true"><path d="M17 2l12.6 7.3v14.4L17 31 4.4 23.7V9.3z" fill="#1d5cf5"/><path d="M21.5 12.2a6.2 6.2 0 100 9.6" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round"/><circle cx="21.8" cy="17" r="1.8" fill="#fff"/></svg>
+      Command Hub
+    </a>
+    <nav class="links" aria-label="Main">
+      <a href="#top">Home</a><a href="#how">How it works</a><a href="#features">Features</a><a href="#pricing">Pricing</a><a href="#faq">FAQ</a>
+    </nav>
+    <div class="nav-btns"><a class="btn" href="/signup" data-track="cta" data-track-label="Header trial">Start Free Trial</a><a class="btn outline nav-app" href="/login">Log In</a></div>
+  </div>
+</header>
 
-  <!-- Header -->
-  <header class="site-header">
-    <div class="container header-inner">
-      <a href="#" class="brand" aria-label="Command Hub home">
-        <svg class="brand-logo"><use href="#logo"/></svg>
-        <span>Command Hub</span>
-      </a>
-      <nav class="main-nav" id="main-nav">
-        <a href="#how-it-works">How It Works</a>
-        <a href="#features">Features</a>
-        <a href="#pricing">Pricing</a>
-        <a href="#faq">FAQ</a>
-      </nav>
-      <a href="/login" class="login-link">Log In</a>
-      <a href="/signup" class="btn btn-dark btn-sm header-cta" data-track="cta" data-track-label="Header trial">Start Free Trial <svg class="ico"><use href="#i-arrow"/></svg></a>
-      <button class="nav-toggle" aria-label="Toggle menu" aria-expanded="false" aria-controls="main-nav"><span></span><span></span><span></span></button>
+<main id="top">
+<section class="lhero" id="home">
+  <div class="lh-photo" aria-hidden="true"><img src="img/crew.webp" alt="" width="1312" height="1199"></div>
+  <div class="wrap lh-in">
+    <div class="lh-copy">
+      <span class="lh-kicker">For roofing companies</span>
+      <h1>Every Roofing Lead.<br><em>Alerted. Captured.</em><br>Ready for Follow&#8209;Up.</h1>
+      <p class="lh-lede">Command Hub connects to your website form and texts you every new lead the moment it comes in. Call or text them back in one tap, and manage everything from one simple dashboard.</p>
+      <div class="lh-ctas">
+        <a class="btn lg" href="/signup" data-track="cta" data-track-label="Hero trial">Start Your 14-Day Free Trial <span class="arr" aria-hidden="true">&rarr;</span></a>
+        <a class="btn outline lg watch-demo" href="#how" data-track="demo" data-track-label="Watch demo"><span class="play" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="#fff"><path d="M7 4l13 8-13 8z"/></svg></span>Watch Demo (40 sec)</a>
+      </div>
+      <ul class="lh-checks"><li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>No setup fee</li><li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>14-day free trial</li><li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Cancel anytime</li></ul>
     </div>
-  </header>
-
-  <main>
-    <!-- Hero -->
-    <section class="hero">
-      <div class="container hero-grid">
-        <div class="hero-copy">
-          <p class="eyebrow">Faster leads. More jobs.</p>
-          <h1>Never Miss Another <span class="accent">Roofing Lead.</span></h1>
-          <p class="lead">Command Hub instantly alerts you when a new lead comes in, so you can call or text right away. No more missed opportunities. No more slow business.</p>
-
-          <ul class="hero-badges">
-            <li><svg class="ico-lg"><use href="#i-bolt"/></svg><span>Instant<br/>Alerts</span></li>
-            <li><svg class="ico-lg"><use href="#i-phone"/></svg><span>Call &amp; Text<br/>with 1 Click</span></li>
-            <li><svg class="ico-lg"><use href="#i-chart"/></svg><span>Mobile Friendly<br/>Dashboard</span></li>
-            <li><svg class="ico-lg"><use href="#i-shield"/></svg><span>Secure &amp;<br/>Reliable</span></li>
-          </ul>
-
-          <div class="hero-actions">
-            <a href="/signup" class="btn btn-primary btn-lg" data-track="cta" data-track-label="Hero trial">Start Your 14-Day Free Trial <svg class="ico"><use href="#i-arrow"/></svg></a>
-            <a href="#how-it-works" class="btn-link" data-track="demo" data-track-label="Watch demo"><span class="play-ring"><svg class="ico"><use href="#i-play"/></svg></span> Watch 1 Min Demo</a>
-          </div>
-          <p class="fineprint">No setup fees <i>•</i> Cancel anytime <i>•</i> Just $697/month after trial</p>
-        </div>
-
-        <!-- Interactive demo -->
-        <div class="hero-demo">
-          <div class="demo-top">
-            <span class="pill">Interactive Demo</span>
-            <span class="demo-hint">Click “Submit Test Lead” below to see how it works.</span>
-          </div>
-
-          <div class="dashboard" aria-label="Command Hub dashboard preview">
-            <aside class="dash-side">
-              <div class="dash-brand"><svg class="brand-logo sm"><use href="#logo"/></svg> Command Hub</div>
-              <a class="active"><svg class="ico"><use href="#i-grid"/></svg>Dashboard</a>
-              <a><svg class="ico"><use href="#i-bell"/></svg>Leads</a>
-              <a><svg class="ico"><use href="#i-bell"/></svg>Notifications</a>
-              <a><svg class="ico"><use href="#i-cog"/></svg>Settings</a>
-            </aside>
-            <div class="dash-main">
-              <div class="dash-search"><svg class="ico"><use href="#i-search"/></svg></div>
-              <div class="dash-cols">
-                <div class="dash-panel">
-                  <div class="panel-head"><strong>Live Leads</strong><span class="live"><i></i>Live</span><span class="muted">View All →</span></div>
-                  <ul class="lead-list" id="lead-list"></ul>
-                </div>
-                <div class="dash-panel">
-                  <div class="panel-head"><strong>Recent Activity</strong></div>
-                  <ul class="activity-list" id="activity-list"></ul>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="phone hero-phone">
-            <div class="phone-screen">
-              <div class="phone-status"><span>9:41</span></div>
-              <svg class="phone-lock"><use href="#i-lock"/></svg>
-              <div class="phone-time">10:24</div>
-              <div class="phone-date">Mon, Sep 29</div>
-              <div class="phone-notif" id="phone-notif">
-                <div class="pn-head"><svg class="brand-logo xs"><use href="#logo"/></svg> Command Hub <span>now</span></div>
-                <strong>New Lead</strong>
-                <span id="pn-name">John Smith</span>
-                <span id="pn-phone">(864) 555-0187</span>
-                <span id="pn-service">Roof Repair</span>
-              </div>
-              <div class="phone-actions">
-                <span class="pa green"><svg class="ico"><use href="#i-call"/></svg></span>
-                <span class="pa blue"><svg class="ico"><use href="#i-chat"/></svg></span>
-              </div>
-            </div>
-          </div>
-
-          <div class="toast" id="toast" role="status" aria-live="polite">
-            <span class="toast-avatar"><svg class="ico"><use href="#i-user"/></svg><i></i></span>
-            <div><strong>New Lead Received</strong><span id="toast-text">John Smith • Roof Repair</span></div>
-            <small>now</small>
-          </div>
-
-          <button class="btn btn-primary btn-sm demo-btn" id="demo-btn" type="button" data-track="demo" data-track-label="Submit test lead">Submit Test Lead <svg class="ico"><use href="#i-arrow"/></svg></button>
-        </div>
+    <div class="lh-devices">
+      <div class="laptop" aria-label="The Command Hub dashboard on a laptop" role="img">
+        <div class="lscreen"><img src="img/dashboard.webp" width="2560" height="1600" alt="" fetchpriority="high"></div>
+        <div class="lbase" aria-hidden="true"></div>
       </div>
-    </section>
-
-    <!-- How it works -->
-    <section class="how" id="how-it-works">
-      <div class="container how-grid">
-        <div class="flow-card">
-          <span class="pill">Watch the 1-minute overview</span>
-          <div class="flow">
-            <form class="flow-form" id="flow-form" autocomplete="off">
-              <strong>Roofing Website</strong>
-              <input type="text" name="name" placeholder="Name" aria-label="Name" />
-              <input type="tel" name="phone" placeholder="Phone" aria-label="Phone" />
-              <input type="text" name="service" placeholder="Service Needed" aria-label="Service needed" />
-              <button type="submit" class="btn btn-primary btn-xs" data-track="demo" data-track-label="Mini form">Submit</button>
-            </form>
-            <svg class="flow-arrow"><use href="#i-arrow"/></svg>
-            <div class="flow-hub">
-              <div class="fh-head"><svg class="brand-logo xs"><use href="#logo"/></svg> Command Hub <span>›</span></div>
-              <div class="fh-card">
-                <svg class="ico fh-bell"><use href="#i-bell"/></svg>
-                <div>
-                  <strong>New Lead!</strong>
-                  <span data-flow="name">John Smith</span>
-                  <span data-flow="phone">(864) 555-0187</span>
-                  <span data-flow="service">Roof Repair</span>
-                </div>
-                <span class="fh-chat"><svg class="ico"><use href="#i-chat"/></svg></span>
-              </div>
-            </div>
-            <svg class="flow-arrow"><use href="#i-arrow"/></svg>
-            <div class="phone flow-phone">
-              <div class="phone-screen">
-                <svg class="phone-lock"><use href="#i-lock"/></svg>
-                <div class="phone-time">10:24</div>
-                <div class="phone-date">Mon, Sep 29</div>
-                <div class="phone-notif show">
-                  <strong>New Lead</strong>
-                  <span data-flow="name">John Smith</span>
-                  <span data-flow="phone">(864) 555-0187</span>
-                  <span data-flow="service">Roof Repair</span>
-                </div>
-                <div class="phone-actions">
-                  <span class="pa green"><svg class="ico"><use href="#i-call"/></svg></span>
-                  <span class="pa blue"><svg class="ico"><use href="#i-chat"/></svg></span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="how-copy">
-          <p class="eyebrow">See how it works</p>
-          <h2>From Website Form<br/>to Your Phone — Instantly.</h2>
-          <p class="sub">Watch how Command Hub captures your website leads, notifies you in real time, and keeps everything organized in one simple dashboard.</p>
-          <ul class="checklist">
-            <li><svg class="ico"><use href="#i-check"/></svg>Lead submitted on your website</li>
-            <li><svg class="ico"><use href="#i-check"/></svg>Instant alert (call, text, or both)</li>
-            <li><svg class="ico"><use href="#i-check"/></svg>View details in your dashboard</li>
-            <li><svg class="ico"><use href="#i-check"/></svg>Call or text with one click</li>
-          </ul>
-        </div>
-      </div>
-    </section>
-
-    <!-- Features -->
-    <section class="features" id="features">
-      <div class="container">
-        <p class="eyebrow center">Built for roofers</p>
-        <h2 class="center">Everything You Need to Win More Jobs.</h2>
-        <div class="feature-grid">
-          <article><svg class="ico-xl"><use href="#i-bolt"/></svg><h3>Real-Time Alerts</h3><p>Get notified the second a lead comes in — no delays.</p></article>
-          <article><svg class="ico-xl"><use href="#i-phone"/></svg><h3>Call &amp; Text Instantly</h3><p>Reach out with 1 click from your phone or computer.</p></article>
-          <article><svg class="ico-xl"><use href="#i-mobile"/></svg><h3>Mobile Friendly</h3><p>Use it anywhere, anytime on any device.</p></article>
-          <article><svg class="ico-xl"><use href="#i-shield"/></svg><h3>Secure &amp; Compliant</h3><p>Bank-grade security and full data protection.</p></article>
-          <article><svg class="ico-xl"><use href="#i-chart"/></svg><h3>Simple Dashboard</h3><p>See all your leads, status, and performance in one place.</p></article>
-        </div>
-      </div>
-    </section>
-
-    <!-- Pricing -->
-    <section class="pricing" id="pricing" data-track-view="pricing_view">
-      <div class="container-wide">
-        <div class="pricing-band">
-          <div class="price">
-            <p class="eyebrow light">Simple pricing</p>
-            <div class="amount">Just $697/Month</div>
-            <p>14-day free trial. Cancel anytime.</p>
-          </div>
-          <div class="price-cta">
-            <a href="/signup" class="btn btn-primary btn-lg" data-track="cta" data-track-label="Pricing trial">Start Your 14-Day Free Trial <svg class="ico"><use href="#i-arrow"/></svg></a>
-            <p class="fineprint light">No setup fees <i>•</i> No contracts <i>•</i> Cancel anytime</p>
-          </div>
-          <div class="price-trust">
-            <svg class="ico-xl"><use href="#i-shield"/></svg>
-            <div><strong>Your data is safe with us.</strong><p>Bank-grade security, SSL encryption, and full privacy.</p></div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Testimonial + FAQ -->
-    <section class="social" id="faq">
-      <div class="container social-grid">
-        <div class="testimonial-card">
-          <div class="quote-mark">“</div>
-          <div class="slides" id="slides">
-            <figure class="slide active">
-              <blockquote>“Command Hub has completely changed the way we handle our leads. We went from chasing calls to getting instant notifications. It’s simple, fast, and actually works.”</blockquote>
-              <figcaption><span class="avatar">MR</span><div><strong>Mike Reynolds</strong><small>Roofing Business Owner</small><span class="stars">★★★★★</span></div></figcaption>
-            </figure>
-            <figure class="slide">
-              <blockquote>“We used to lose leads that came in after hours. Now my phone buzzes the second someone fills out the form and we’re calling them back in minutes.”</blockquote>
-              <figcaption><span class="avatar">DT</span><div><strong>Dana Torres</strong><small>Owner, Summit Roofing</small><span class="stars">★★★★★</span></div></figcaption>
-            </figure>
-            <figure class="slide">
-              <blockquote>“Setup took one afternoon. The dashboard is clean and my whole crew knows exactly which leads are new and who’s already been contacted.”</blockquote>
-              <figcaption><span class="avatar">JK</span><div><strong>James Keller</strong><small>Roofing Sales Manager</small><span class="stars">★★★★★</span></div></figcaption>
-            </figure>
-          </div>
-          <div class="slider-nav">
-            <button type="button" id="prev" aria-label="Previous testimonial">‹</button>
-            <span class="dots" id="dots"></span>
-            <button type="button" id="next" aria-label="Next testimonial">›</button>
-          </div>
-        </div>
-
-        <div class="faq">
-          <p class="eyebrow">Frequently asked questions</p>
-          <h2>Got Questions? We’ve Got Answers.</h2>
-          <div class="faq-list">
-            <details><summary>How does the 14-day free trial work?</summary><p>Sign up and get full access to every feature for 14 days. We’ll connect your website form, and you’ll start receiving lead alerts right away. If it’s not for you, cancel before the trial ends and you won’t be charged.</p></details>
-            <details><summary>Do I need to install anything?</summary><p>No. Command Hub runs in your browser on any phone, tablet, or computer. We give you a small snippet (or connect your existing form) so leads flow in automatically.</p></details>
-            <details><summary>Is there a setup fee?</summary><p>No setup fees, ever. One simple price of $697/month after your trial — no contracts.</p></details>
-            <details><summary>What happens after the trial?</summary><p>Your plan continues at $697/month and all of your leads and history stay right where they are. You can cancel anytime from your settings.</p></details>
-          </div>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <footer class="site-footer">
-    <div class="container footer-inner">
-      <a href="#" class="brand light"><svg class="brand-logo"><use href="#logo"/></svg><span>Command Hub</span></a>
-      <nav>
-        <a href="#how-it-works">How It Works</a>
-        <a href="#features">Features</a>
-        <a href="#pricing">Pricing</a>
-        <a href="#faq">FAQ</a>
-      </nav>
-      <p>Built for Roofers. Powered by Results. <a href="/privacy">Privacy</a></p>
+      <div class="lphone" role="img" aria-label="A new lead alert on a phone with Call and Text buttons"><img src="img/alert.webp" width="780" height="1520" alt=""></div>
+      <div class="ichip" aria-hidden="true"><span class="bolt"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg></span><span><b>Instant Alert</b><small>Website form &rarr; SMS + Call + Dashboard</small></span><i></i></div>
     </div>
-  </footer>
+  </div>
+</section>
 
-  <script src="/config.js"></script>
-  <script src="/track.js"></script>
-  <script src="script.js"></script>
+<section class="fstrip" aria-label="What you get">
+  <div class="wrap">
+    <div><span class="fs-ic"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg></span><span><b>Instant Lead Alerts</b><small>A text on your phone as soon as a form is submitted.</small></span></div>
+    <div><span class="fs-ic"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2z"/></svg></span><span><b>One-Tap Contact</b><small>Call or text the lead from your phone or dashboard.</small></span></div>
+    <div><span class="fs-ic"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></span><span><b>Mobile-Friendly Dashboard</b><small>Manage leads and follow-ups from anywhere.</small></span></div>
+    <div><span class="fs-ic"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg></span><span><b>Private by Default</b><small>Your leads stay in your account. No one else sees them.</small></span></div>
+    <div><span class="fs-ic"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></svg></span><span><b>Done-for-You Setup</b><small>We connect your form and send a test lead. That&rsquo;s it.</small></span></div>
+  </div>
+</section>
+
+<section class="split" aria-label="Why it matters">
+  <div class="sp-left">
+    <img src="img/crew.webp" alt="" aria-hidden="true" width="1312" height="1199">
+    <div class="sp-in">
+      <span class="lh-kicker light">Real roofing jobs. Real opportunity.</span>
+      <h2>One missed lead could be a $8k&ndash;$20k job.</h2>
+      <p>When a homeowner fills out your form and nobody calls back, they call the next roofer. Command Hub helps make sure you're the first one they hear from.</p>
+      <ul class="sp-stats">
+        <li><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></svg><span>More calls<br>More jobs</span></li>
+        <li><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V14M10 20V10M16 20V6M3 20h18"/><path d="M15 3h4v4M19 3l-6 6"/></svg><span>Save time<br>Be more efficient</span></li>
+        <li><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg><span>Stay ahead<br>of your competition</span></li>
+      </ul>
+    </div>
+  </div>
+  <div class="sp-right">
+    <h2>See It In Action</h2>
+    <p>A homeowner fills out your website form. In seconds, you get an alert, and you're ready to respond.</p>
+    <div class="sia">
+      <div class="sia-left">
+        <ol class="stepper" id="stepper">
+          <li class="on"><b>1</b><span>Website Form<br>Submitted</span></li>
+          <li><b>2</b><span>Instant SMS<br>&amp; Call Alert</span></li>
+          <li><b>3</b><span>Tap to Call<br>or Text</span></li>
+          <li><b>4</b><span>Track &amp;<br>Follow Up</span></li>
+        </ol>
+        <a class="btn outline watch-demo" href="#how">Watch Full Demo (40 sec)</a>
+      </div>
+      <div class="sia-vis" aria-hidden="true">
+        <div class="mform">
+          <span class="tag">New Lead</span>
+          <div class="mimg"><img src="img/crew-sm.webp" alt="" width="760" height="694"></div>
+          <b>Get a Free Roof Estimate</b>
+          <label>Name<i>John D.</i></label>
+          <label>Phone<i>(864) 555-0187</i></label>
+          <label>Address<i>123 Oak Ridge Dr, Greenville, SC</i></label>
+          <span class="msub">Submit</span>
+        </div>
+        <span class="marrow"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+        <div class="malert" id="malert">
+          <div class="ma-head"><svg width="22" height="22" viewBox="0 0 34 34"><path d="M17 2l12.6 7.3v14.4L17 31 4.4 23.7V9.3z" fill="#1d5cf5"/><path d="M21.5 12.2a6.2 6.2 0 100 9.6" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round"/></svg><span>Command Hub</span><small>just now</small></div>
+          <b>New Lead Alert</b>
+          <p>Roof estimate form submitted<br>John D. &middot; 123 Oak Ridge Dr.</p>
+          <div class="ma-btns"><span class="c">Call</span><span class="t">Text</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="pband" aria-label="Pricing summary">
+  <div class="wrap">
+    <div class="pb-price"><span class="lh-kicker light">Simple, transparent pricing</span><div class="pb-amt"><b>$697</b><span>/ month</span></div><small>Billed monthly. Cancel anytime.</small></div>
+    <ul class="pb-list">
+      <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>14-day free trial</li>
+      <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Done-for-you setup and testing</li>
+      <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>No contract, no setup fee</li>
+      <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>30-day money-back guarantee</li>
+    </ul>
+    <div class="pb-cta"><a class="btn white lg" href="/signup" data-track="cta" data-track-label="Pricing bar trial">Start Your 14-Day Free Trial <span class="arr" aria-hidden="true">&rarr;</span></a><a class="pb-link" href="#try">Or try the live demo first</a></div>
+  </div>
+</section>
+
+<section class="sec tint" id="why">
+  <div class="wrap">
+    <div class="sec-head">
+      <div><span class="label">Why speed wins</span><h2>The first roofer to call back usually gets the job.</h2></div>
+      <p>Homeowners with a leaking roof don't wait. They fill out a few forms and hire whoever calls first.</p>
+    </div>
+    <figure class="research">
+      <div class="stats">
+        <div><b>7&times;</b><span>more likely to land a real sales conversation when a business replies within an hour instead of waiting longer</span>
+          <div class="viz cmp" role="img" aria-label="Replying within an hour: 7 times. Replying later: 1 time.">
+            <div class="vrow"><em>Within 1 hour</em><i style="width:100%" title="Within 1 hour: 7&times;"></i><strong>7&times;</strong></div>
+            <div class="vrow"><em>Later</em><i class="g" style="width:14.3%" title="Later: 1&times;"></i><strong>1&times;</strong></div>
+          </div></div>
+        <div><b>42 hrs</b><span>was the average time businesses took to answer a web inquiry</span>
+          <div class="viz track" role="img" aria-label="Average reply time of 42 hours on a 0 to 48 hour scale.">
+            <div class="tbar"><i style="width:87.5%"></i><u style="left:87.5%" title="Average reply: 42 hours"></u></div>
+            <div class="tlab"><span>0 h</span><span>24 h</span><span>48 h</span></div>
+          </div></div>
+        <div><b>23%</b><span>of businesses never answered at all</span>
+          <div class="viz dots" role="img" aria-label="23 out of 100 businesses never answered."><i class="x"></i><i class="x"></i><i class="x"></i><i class="x"></i><i class="x"></i><i class="x"></i><i class="x"></i><i class="x"></i><i class="x"></i><i class="x"></i><i class="x"></i><i class="x"></i><i class="x"></i><i class="x"></i><i class="x"></i><i class="x"></i><i class="x"></i><i class="x"></i><i class="x"></i><i class="x"></i><i class="x"></i><i class="x"></i><i class="x"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+      </div>
+      <figcaption>Harvard Business Review, &ldquo;The Short Life of Online Sales Leads&rdquo; (2011), a study of how 2,241 U.S. companies handled web inquiries.</figcaption>
+    </figure>
+    <div class="vs">
+      <div class="bad">
+        <h3><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#c8372d" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>Without Command Hub</h3>
+        <ul class="tl">
+          <li><span class="t">10:02</span><span><b>A homeowner fills out your form</b> while you're on a roof.</span></li>
+          <li><span class="t">10:02</span><span>The lead sits in an inbox you check after work.</span></li>
+          <li><span class="t">10:20</span><span>They call the next roofer on Google.</span></li>
+          <li><span class="t">6:45 pm</span><span>You call back. <b>"We already hired someone."</b></span></li>
+        </ul>
+        <span class="end">Job lost</span>
+      </div>
+      <div class="good">
+        <h3><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5ee49a" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>With Command Hub</h3>
+        <ul class="tl">
+          <li><span class="t">10:02</span><span><b>A homeowner fills out your form</b> while you're on a roof.</span></li>
+          <li><span class="t">10:02</span><span>Your phone buzzes with their name, number and job.</span></li>
+          <li><span class="t">10:04</span><span>You tap <b>Call</b> from the ladder.</span></li>
+          <li><span class="t">10:05</span><span><b>You're the first roofer they talk to.</b></span></li>
+        </ul>
+        <span class="end">Inspection booked</span>
+      </div>
+    </div>
+    <p class="fine-note">Example timeline.</p>
+  </div>
+</section>
+
+<section class="sec" id="how">
+  <div class="wrap">
+    <div class="sec-head">
+      <div><span class="label">How it works</span><h2>From website form to your phone, in seconds.</h2></div>
+      <p>No new software to learn. Your website keeps working the way it does now.</p>
+    </div>
+    <div class="how-grid">
+      <div class="player" id="player">
+        <span class="pill">SEE THE FLOW</span>
+        <video id="demoVid" poster="demo-poster.jpg" controls playsinline preload="metadata" hidden aria-label="40-second Command Hub demo"><source src="demo.mp4" type="video/mp4"><source src="demo.webm" type="video/webm"></video>
+        <div class="scene">
+          <div class="form" id="sForm"><h5>Roofing Website</h5><i>Name</i><i>Phone</i><i>Service Needed</i><u>Submit</u></div>
+          <div class="hub" id="sHub"><div class="t">Command Hub</div><div class="n">New Lead!</div></div>
+          <div class="phone" id="sPhone"><div class="clock">10:02</div><div class="pn"><b>New Lead</b>John Smith<br>(864) 555-0187<br>Roof Repair</div><div class="pb"><span style="background:#12a150"><svg width="12" height="12" viewBox="0 0 24 24" fill="#fff"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2z"/></svg></span><span style="background:#1d5cf5"><svg width="12" height="12" viewBox="0 0 24 24" fill="#fff"><path d="M4 4h16v12H9l-5 4z"/></svg></span></div></div>
+        </div>
+        <div class="bar"><button id="play" type="button" aria-label="Play walkthrough"><svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M7 4l13 8-13 8z"/></svg></button><div class="track"><i id="prog"></i></div><span id="plabel">Play walkthrough</span></div>
+      </div>
+      <ol class="steps3">
+        <li><div><h3>A homeowner fills out your form</h3><p>We connect the contact form you already have. Nothing changes for your customers.</p></div></li>
+        <li><div><h3>You get a text right away</h3><p>Name, phone, address and what they need, sent straight to your cell.</p></div></li>
+        <li><div><h3>You call or text with one tap</h3><p>Every lead is saved in your dashboard, so nothing slips through on a busy day.</p></div></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<section class="sec tint" id="try">
+  <div class="wrap try">
+    <div class="sec-head">
+      <div><span class="label">Try it</span><h2>Send yourself a test lead.</h2></div>
+      <p>Press the button and watch a lead land, the same way it would from your website.</p>
+    </div>
+    <div class="demo" id="demo">
+      <div class="demo-top">
+        <span class="dot" aria-hidden="true"></span><span class="ttl">Live demo</span>
+        <button class="btn" id="submitLead" type="button" data-track="demo" data-track-label="Submit test lead">Submit a test lead</button>
+      </div>
+      <div class="demo-body">
+        <div class="notif" aria-live="polite">
+          <div class="notif-head"><span class="bell"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9a6 6 0 1112 0c0 6 2 7 2 7H4s2-1 2-7zM10 20a2 2 0 004 0"/></svg></span>New lead<span class="when" id="when">2s ago</span></div>
+          <h3 id="nName">John Smith</h3>
+          <div class="svc" id="nSvc">Roof Repair</div>
+          <div class="meta">
+            <div><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5f6b82" stroke-width="2" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2z"/></svg><span class="mono" id="nPhone">(864) 555-0187</span></div>
+            <div><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5f6b82" stroke-width="2"><path d="M12 22s7-6.5 7-12a7 7 0 10-14 0c0 5.5 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg><span id="nCity">Greenville, SC</span></div>
+          </div>
+          <div class="note" id="nNote">Interested in a free inspection. Roof is leaking.</div>
+          <div class="actions">
+            <button class="act call" type="button" data-act="Call"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2z"/></svg>Call</button>
+            <button class="act text" type="button" data-act="Text"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1d5cf5" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16v12H9l-5 4z"/></svg>Text</button>
+          </div>
+          <div class="recorded" id="rec"></div>
+        </div>
+        <div class="dash" aria-label="Dashboard preview">
+          <h4>Live leads <small>Today</small></h4>
+          <div class="rows" id="rows"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec dark" id="features">
+  <div class="wrap">
+    <div class="sec-head">
+      <div><span class="label">Built for roofers</span><h2>Everything you need to call back first.</h2></div>
+      <p>Simple enough to run from the truck. These are the real screens, not mockups.</p>
+    </div>
+<div class="frows">
+    <div class="frow phone-row">
+      <figure class="fshot"><img src="img/alert.webp" width="780" height="1520" alt="New lead alert on a phone lock screen with Call and Text buttons." loading="lazy"></figure>
+      <div class="ftext"><span class="kicker">01 &middot; The alert</span><h3>Your phone buzzes the second they hit submit.</h3><ul><li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6f9bff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>Their name, phone number, job and message, right in the text.</span></li><li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6f9bff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>Works on any phone. Nothing to install.</span></li><li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6f9bff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>Tap Call or Text straight from the alert.</span></li></ul></div>
+    </div>
+    <div class="frow">
+      <figure class="fshot"><img src="img/lead.webp" width="2560" height="1600" alt="A lead page with the homeowner's message, one-tap Call and Text buttons and a ready-to-send text." loading="lazy"></figure>
+      <div class="ftext"><span class="kicker">02 &middot; The callback</span><h3>Call or text back in one tap.</h3><ul><li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6f9bff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>A text with their name and job is already written for you.</span></li><li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6f9bff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>Every call and text is logged on the lead.</span></li><li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6f9bff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>Mark it Contacted, Appointment or Won as you go.</span></li></ul></div>
+    </div>
+    <div class="frow flip">
+      <figure class="fshot"><img src="img/dashboard.webp" width="2560" height="1600" alt="The Command Hub dashboard with leads waiting on a call, time to call, leads by day and the pipeline." loading="lazy"></figure>
+      <div class="ftext"><span class="kicker">03 &middot; The dashboard</span><h3>See what's waiting and what you've won.</h3><ul><li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6f9bff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>Who still needs a call, at the top.</span></li><li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6f9bff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>How fast you're calling back, measured for you.</span></li><li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6f9bff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>Every lead from new to won in one place.</span></li></ul></div>
+    </div>
+    </div>
+    <ul class="extras">
+      <li><b>Private by default.</b> Your leads stay in your account. No one else sees them.</li>
+      <li><b>We set it up for you.</b> We connect your form and send a test lead to prove it works.</li>
+      <li><b>Phone, tablet or computer.</b> Open it anywhere you sign in.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="sec tint roi" id="calculator">
+  <div class="wrap">
+    <div class="sec-head">
+      <div><span class="label">What slow replies cost</span><h2>One saved roof pays for months of Command Hub.</h2></div>
+      <p>Put in your own numbers and see what leads that go cold are worth.</p>
+    </div>
+    <div class="box">
+      <div class="inputs">
+        <label class="sl"><span class="sl-top"><span>Website leads per month</span><output id="oLeads" for="rLeads"></output></span><input id="rLeads" type="range" min="1" max="150" step="1" value="20"></label>
+        <label class="sl"><span class="sl-top"><span>Average job value</span><output id="oJob" for="rJob"></output></span><input id="rJob" type="range" min="1000" max="40000" step="500" value="9000"></label>
+        <label class="sl"><span class="sl-top"><span>Leads missed or reached too late</span><output id="oMiss" for="rMiss"></output></span><input id="rMiss" type="range" min="0" max="80" step="5" value="20"></label>
+        <label class="sl"><span class="sl-top"><span>Of those, how many you'd close</span><output id="oClose" for="rClose"></output></span><input id="rClose" type="range" min="5" max="80" step="5" value="25"></label>
+        <p class="sl-note">Drag the sliders to match your business.</p>
+      </div>
+      <div class="result" aria-live="polite">
+        <div><div class="lbl">Revenue you may be losing</div><div class="big" id="rLost">$9,000</div><p style="margin-top:10px">every month, from leads that go cold.</p></div>
+        <div class="row2">
+          <div><b id="rJobs">1.0</b><small>jobs lost per month</small></div>
+          <div><b id="rMonths">12.9</b><small>months of Command Hub paid by one saved job</small></div>
+        </div>
+        <p id="rLine">Command Hub costs $697 a month. Saving one job pays for it many times over.</p>
+        <div class="est">An estimate from the numbers you entered, not a promise of results.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="pricing" data-track-view="pricing_view">
+  <div class="wrap">
+    <div class="sec-head">
+      <div><span class="label">Pricing</span><h2>One plan. Everything included.</h2></div>
+      <p>No setup fee, no contract, and a guarantee if it doesn't help.</p>
+    </div>
+    <div class="pricing-grid">
+      <div class="plan">
+        <span class="label">Command Hub</span>
+        <div class="amt"><b>$697</b><span>/ month</span></div>
+        <div class="perday">That's about <b>$23 a day</b>. One saved roof job covers months of it. <a href="#calculator">Run your numbers</a></div>
+        <p class="sub2">Start with a 14-day free trial. Cancel anytime before day 15 and pay nothing.</p>
+        <a class="btn lg" href="/signup" data-track="cta" data-track-label="Pricing trial">Start your 14-day free trial <span class="arr" aria-hidden="true">&rarr;</span></a>
+        <p class="small">Try everything free for 14 days. Cancel anytime.</p>
+      </div>
+      <div class="incl">
+        <h3>Everything included</h3>
+        <ul>
+          <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#12a150" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Instant text alerts for every website lead</li>
+          <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#12a150" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>One-tap call and text</li>
+          <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#12a150" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Instant text-back to every homeowner</li>
+          <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#12a150" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Lead dashboard on phone and computer</li>
+          <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#12a150" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Done-for-you setup and testing</li>
+          <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#12a150" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Private account for your company</li>
+          <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#12a150" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>No contract, no setup fee</li>
+        </ul>
+      </div>
+    </div>
+    <div class="guarantee" id="guarantee"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#12a150" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5" stroke-linecap="round"/></svg><div><b>30-day money-back guarantee</b><span>If Command Hub doesn't help you respond to leads faster in the first 30 days after you're billed, email us and we'll refund your first month. No hoops.</span></div></div>
+  </div>
+</section>
+
+<section class="sec start" id="start">
+  <div class="wrap box">
+    <div>
+      <span class="label">Start your free trial</span>
+      <h2>We set it up for you. No calls needed.</h2>
+      <p class="sub">Tell us where your leads come from. We connect everything and send you a link when it's live.</p>
+      <ol class="steps">
+        <li><div><b>Fill out this form</b>Takes about a minute.</div></li>
+        <li><div><b>We connect your website form</b>Plus the text alerts to your phone. You don't have to touch your site.</div></li>
+        <li><div><b>You get a text when it's live</b>With your trial link. Your 14 days start then.</div></li>
+      </ol>
+    </div>
+    <form class="sform" id="setupForm" novalidate>
+      <div class="two">
+        <label class="inp"><span>Company name</span><input id="fCo" required maxlength="100" autocomplete="organization" placeholder="Upstate Roofing"></label>
+        <label class="inp"><span>Your name</span><input id="fName" required maxlength="80" autocomplete="name" placeholder="Mike Reynolds"></label>
+      </div>
+      <div class="two">
+        <label class="inp"><span>Cell phone <small>(for lead alerts)</small></span><input id="fPhone" required type="tel" maxlength="30" autocomplete="tel" placeholder="(864) 555-0123"></label>
+        <label class="inp"><span>Email</span><input id="fEmail" required type="email" maxlength="120" autocomplete="email" placeholder="you@company.com"></label>
+      </div>
+      <label class="inp"><span>Your website</span><input id="fSite" maxlength="200" inputmode="url" placeholder="upstateroofing.com"></label>
+      <div class="two">
+        <label class="inp"><span>Website built with</span><select id="fBuilt"><option>Not sure</option><option>WordPress</option><option>Wix</option><option>Squarespace</option><option>GoDaddy</option><option>Someone manages it for me</option><option>Other</option></select></label>
+        <label class="inp"><span>Leads per month (about)</span><select id="fVol"><option>Under 10</option><option>10–30</option><option>30–60</option><option>60+</option></select></label>
+      </div>
+      <label class="inp"><span>Anything we should know? <small>(optional)</small></span><textarea id="fNote" maxlength="1000" placeholder="e.g. Leads should also go to my office manager."></textarea></label>
+      <p class="err" id="fErr" hidden></p>
+      <button class="btn lg" type="submit" id="fSubmit">Request my setup <span class="arr" aria-hidden="true">&rarr;</span></button>
+      <p class="fineprint">We'll text or email you within 1 business day. 30-day money-back guarantee.</p>
+    </form>
+  </div>
+</section>
+
+<section class="sec tint" id="faq">
+  <div class="wrap faq-grid">
+    <div>
+      <span class="label">FAQ</span>
+      <h2>Questions roofers ask us.</h2>
+      <div class="ask">
+        <h3>Something else?</h3>
+        <p>Email us and a real person will answer, usually the same day.</p>
+        <div class="mail"><span id="addr">hello@commandhub.co</span><button type="button" id="copy">Copy</button></div>
+      </div>
+    </div>
+    <div class="faq">
+      <details><summary>How does the 14-day free trial work?</summary><p>Sign up and use every feature free for 14 days. After that it's $697 a month, and you can cancel anytime.</p></details>
+      <details><summary>Do I need to change my website?</summary><p>No. We connect your existing contact form for you. If someone else manages your site, we can send them the one small change.</p></details>
+      <details><summary>Do I need to install anything?</summary><p>No. Alerts come as regular text messages, and the dashboard opens in any web browser.</p></details>
+      <details><summary>What if I miss the text alert?</summary><p>Every lead is saved in your dashboard and marked New until someone contacts it, so nothing gets lost while you're on a roof.</p></details>
+      <details><summary>Is there a setup fee?</summary><p>No. The price is $697 per month with no setup fee and no contract.</p></details>
+      <details><summary>Can I cancel anytime?</summary><p>Yes. No contract. Cancel before day 15 and you pay nothing.</p></details>
+      <details><summary>Is there a guarantee?</summary><p>Yes. If Command Hub doesn't help you respond to leads faster in the first 30 days after you're billed, email us and we'll refund your first month.</p></details>
+    </div>
+  </div>
+</section>
+
+<section class="closer">
+  <div class="wrap"><div class="ccard">
+    <div class="ctext">
+      <h2>Your next lead is coming in today. Be the first to call.</h2>
+      <p>14-day free trial. Set up for you. Cancel anytime.</p>
+      <div class="cta-row"><a class="btn white lg" href="/signup" data-track="cta" data-track-label="Closer trial">Start your free trial <span class="arr" aria-hidden="true">&rarr;</span></a><a class="btn glass lg" href="#try">Try the live demo</a></div>
+    </div>
+    <div class="cpeek" aria-hidden="true"><img src="img/dashboard.webp" width="2560" height="1600" alt="" loading="lazy"></div>
+  </div></div>
+</section>
+</main>
+
+<div class="mbar" id="mbar" aria-hidden="true"><div><b>14 days free</b><span>Then $697/mo. Cancel anytime.</span></div><a class="btn" href="/signup" data-track="cta" data-track-label="Mobile bar trial" tabindex="-1">Start free trial</a></div>
+<div class="sky sky-foot"><svg class="skyline" viewBox="0 0 1600 200" preserveAspectRatio="xMidYMax slice" aria-hidden="true" focusable="false"><defs><pattern id="shg21" width="14" height="7" patternUnits="userSpaceOnUse"><rect width="14" height="7" fill="#0b1a30"/><path d="M0 6.5H14M4 0V6.5M11 0V3" stroke="#14284d" stroke-width="1"/></pattern></defs><g opacity=".9"><path d="M-40.0 192.0 L-40.0 146.0 L-46.0 146.0 L-11.5 123.7 L41.0 157.5 L35.0 146.0 L35.0 192.0 Z" fill="#dbe3f1"/><path d="M26.0 192.0 L26.0 129.0 L20.0 129.0 L68.9 100.4 L145.0 144.8 L139.0 129.0 L139.0 192.0 Z" fill="#dbe3f1"/><rect x="77.9" y="96.0" width="8.1" height="31.6" fill="#dbe3f1"/><path d="M134.0 192.0 L134.0 127.0 L128.0 127.0 L182.5 103.5 L237.0 127.0 L231.0 127.0 L231.0 192.0 Z" fill="#dbe3f1"/><rect x="176.2" y="97.3" width="8.1" height="28.5" fill="#dbe3f1"/><path d="M235.0 192.0 L235.0 141.0 L229.0 141.0 L270.3 113.0 L334.0 153.8 L328.0 141.0 L328.0 192.0 Z" fill="#dbe3f1"/><rect x="260.6" y="108.4" width="8.1" height="31.2" fill="#dbe3f1"/><path d="M324.0 192.0 L324.0 127.0 L318.0 127.0 L383.0 102.2 L448.0 127.0 L442.0 127.0 L442.0 192.0 Z" fill="#dbe3f1"/><path d="M438.0 192.0 L438.0 146.0 L432.0 146.0 L491.5 123.3 L551.0 146.0 L545.0 146.0 L545.0 192.0 Z" fill="#dbe3f1"/><path d="M549.0 192.0 L549.0 140.0 L543.0 140.0 L582.9 117.2 L636.1 117.2 L676.0 140.0 L670.0 140.0 L670.0 192.0 Z" fill="#dbe3f1"/><path d="M678.0 192.0 L678.0 146.0 L672.0 146.0 L742.0 117.2 L812.0 146.0 L806.0 146.0 L806.0 192.0 Z" fill="#dbe3f1"/><rect x="756.8" y="112.9" width="8.1" height="31.7" fill="#dbe3f1"/><path d="M732.1 133.0 l9.9 -9.0 l9.9 9.0 v10.8 h-19.8 z" fill="#dbe3f1"/><path d="M811.0 192.0 L811.0 137.0 L805.0 137.0 L837.0 114.9 L878.0 114.9 L910.0 137.0 L904.0 137.0 L904.0 192.0 Z" fill="#dbe3f1"/><path d="M896.0 192.0 L896.0 144.0 L890.0 144.0 L954.5 110.5 L1019.0 144.0 L1013.0 144.0 L1013.0 192.0 Z" fill="#dbe3f1"/><path d="M944.6 128.9 l9.9 -9.0 l9.9 9.0 v10.8 h-19.8 z" fill="#dbe3f1"/><path d="M1019.0 192.0 L1019.0 151.0 L1013.0 151.0 L1062.5 132.5 L1112.0 151.0 L1106.0 151.0 L1106.0 192.0 Z" fill="#dbe3f1"/><rect x="1070.9" y="124.6" width="8.1" height="25.5" fill="#dbe3f1"/><path d="M1099.0 192.0 L1099.0 131.0 L1093.0 131.0 L1125.6 112.3 L1175.0 146.2 L1169.0 131.0 L1169.0 192.0 Z" fill="#dbe3f1"/><path d="M1177.0 192.0 L1177.0 140.0 L1171.0 140.0 L1217.0 120.5 L1263.0 140.0 L1257.0 140.0 L1257.0 192.0 Z" fill="#dbe3f1"/><rect x="1198.8" y="112.9" width="8.1" height="26.1" fill="#dbe3f1"/><path d="M1252.0 192.0 L1252.0 140.0 L1246.0 140.0 L1306.5 115.6 L1367.0 140.0 L1361.0 140.0 L1361.0 192.0 Z" fill="#dbe3f1"/><rect x="1296.3" y="109.8" width="8.1" height="29.0" fill="#dbe3f1"/><path d="M1296.6 129.0 l9.9 -9.0 l9.9 9.0 v10.8 h-19.8 z" fill="#dbe3f1"/><path d="M1351.0 192.0 L1351.0 140.0 L1345.0 140.0 L1379.1 119.2 L1431.0 153.0 L1425.0 140.0 L1425.0 192.0 Z" fill="#dbe3f1"/><rect x="1371.8" y="112.1" width="8.1" height="26.9" fill="#dbe3f1"/><path d="M1432.0 192.0 L1432.0 124.0 L1426.0 124.0 L1474.5 100.3 L1523.0 124.0 L1517.0 124.0 L1517.0 192.0 Z" fill="#dbe3f1"/><path d="M1464.6 113.3 l9.9 -9.0 l9.9 9.0 v10.8 h-19.8 z" fill="#dbe3f1"/><path d="M1512.0 192.0 L1512.0 124.0 L1506.0 124.0 L1576.0 91.6 L1646.0 124.0 L1640.0 124.0 L1640.0 192.0 Z" fill="#dbe3f1"/><path d="M1632.0 192.0 L1632.0 150.0 L1626.0 150.0 L1668.1 129.6 L1733.0 160.5 L1727.0 150.0 L1727.0 192.0 Z" fill="#dbe3f1"/><rect x="1687.1" y="122.4" width="8.1" height="26.6" fill="#dbe3f1"/></g><rect x="0" y="190" width="1600" height="12" fill="#dbe3f1"/><ellipse cx="191.3" cy="167.7" rx="16.6" ry="23.4" fill="#0e2140"/><rect x="189.8" y="184.4" width="3" height="15.6" fill="#0e2140"/><ellipse cx="399.4" cy="164.7" rx="18.2" ry="25.6" fill="#0e2140"/><rect x="397.9" y="182.9" width="3" height="17.1" fill="#0e2140"/><ellipse cx="532.9" cy="169.6" rx="15.7" ry="22.1" fill="#0e2140"/><rect x="531.4" y="185.3" width="3" height="14.7" fill="#0e2140"/><path d="M-40.0 200.0 L-40.0 128.0 L-46.0 128.0 L20.5 94.9 L87.0 128.0 L81.0 128.0 L81.0 200.0 Z" fill="#0b1a30"/><path d="M-46.0 128.0 L20.5 94.9 L87.0 128.0 Z" fill="url(#shg21)"/><polyline points="-46.0,128.0 20.5,94.9 87.0,128.0" fill="none" stroke="#2f5bb5" stroke-width="2" stroke-linejoin="round"/><path d="M9.5 113.1 l11.0 -10.0 l11.0 10.0 v12.0 h-22.0 z" fill="#0b1a30"/><rect x="16.5" y="115.1" width="8.0" height="7.0" rx="1" fill="#ffcf7a"/><path d="M89.0 200.0 L89.0 131.0 L83.0 131.0 L127.4 105.5 L196.0 148.2 L190.0 131.0 L190.0 200.0 Z" fill="#0b1a30"/><path d="M83.0 131.0 L127.4 105.5 L196.0 148.2 Z" fill="url(#shg21)"/><polyline points="83.0,131.0 127.4,105.5 196.0,148.2" fill="none" stroke="#2f5bb5" stroke-width="2" stroke-linejoin="round"/><rect x="150.9" y="98.4" width="9.0" height="31.3" fill="#0b1a30"/><path d="M211.0 200.0 L211.0 126.0 L205.0 126.0 L300.0 71.6 L395.0 126.0 L389.0 126.0 L389.0 200.0 Z" fill="#0b1a30"/><path d="M205.0 126.0 L300.0 71.6 L395.0 126.0 Z" fill="url(#shg21)"/><polyline points="205.0,126.0 300.0,71.6 395.0,126.0" fill="none" stroke="#2f5bb5" stroke-width="2" stroke-linejoin="round"/><rect x="294.0" y="146.7" width="12.0" height="14.0" rx="1.5" fill="#ffcf7a"/><path d="M422.0 200.0 L422.0 125.0 L416.0 125.0 L473.0 97.9 L530.0 125.0 L524.0 125.0 L524.0 200.0 Z" fill="#0b1a30"/><path d="M416.0 125.0 L473.0 97.9 L530.0 125.0 Z" fill="url(#shg21)"/><polyline points="416.0,125.0 473.0,97.9 530.0,125.0" fill="none" stroke="#2f5bb5" stroke-width="2" stroke-linejoin="round"/><rect x="469.6" y="91.4" width="9.0" height="32.2" fill="#0b1a30"/><rect x="434.0" y="146.0" width="12.0" height="14.0" rx="1.5" fill="#ffcf7a"/><rect x="500.0" y="146.0" width="12.0" height="14.0" rx="1.5" fill="#ffcf7a"/><path d="M538.0 200.0 L538.0 150.0 L532.0 150.0 L625.0 103.7 L718.0 150.0 L712.0 150.0 L712.0 200.0 Z" fill="#0b1a30"/><path d="M532.0 150.0 L625.0 103.7 L718.0 150.0 Z" fill="url(#shg21)"/><polyline points="532.0,150.0 625.0,103.7 718.0,150.0" fill="none" stroke="#2f5bb5" stroke-width="2" stroke-linejoin="round"/><rect x="550.0" y="164.0" width="12.0" height="14.0" rx="1.5" fill="#ffcf7a"/><rect x="584.5" y="164.0" width="12.0" height="14.0" rx="1.5" fill="#ffcf7a"/><rect x="653.5" y="164.0" width="12.0" height="14.0" rx="1.5" fill="#ffcf7a"/><path d="M736.0 200.0 L736.0 134.0 L730.0 134.0 L810.5 96.9 L891.0 134.0 L885.0 134.0 L885.0 200.0 Z" fill="#0b1a30"/><path d="M730.0 134.0 L810.5 96.9 L891.0 134.0 Z" fill="url(#shg21)"/><polyline points="730.0,134.0 810.5,96.9 891.0,134.0" fill="none" stroke="#2f5bb5" stroke-width="2" stroke-linejoin="round"/><rect x="773.4" y="93.9" width="9.0" height="38.2" fill="#0b1a30"/><path d="M799.5 117.3 l11.0 -10.0 l11.0 10.0 v12.0 h-22.0 z" fill="#0b1a30"/><rect x="806.5" y="119.3" width="8.0" height="7.0" rx="1" fill="#ffcf7a"/><path d="M916.0 200.0 L916.0 140.0 L910.0 140.0 L979.1 95.0 L1088.0 155.0 L1082.0 140.0 L1082.0 200.0 Z" fill="#0b1a30"/><path d="M910.0 140.0 L979.1 95.0 L1088.0 155.0 Z" fill="url(#shg21)"/><polyline points="910.0,140.0 979.1,95.0 1088.0,155.0" fill="none" stroke="#2f5bb5" stroke-width="2" stroke-linejoin="round"/><rect x="928.0" y="156.8" width="12.0" height="14.0" rx="1.5" fill="#ffcf7a"/><rect x="971.3" y="156.8" width="12.0" height="14.0" rx="1.5" fill="#ffcf7a"/><rect x="1014.7" y="156.8" width="12.0" height="14.0" rx="1.5" fill="#ffcf7a"/><path d="M1109.0 200.0 L1109.0 139.0 L1103.0 139.0 L1178.5 107.5 L1254.0 139.0 L1248.0 139.0 L1248.0 200.0 Z" fill="#0b1a30"/><path d="M1103.0 139.0 L1178.5 107.5 L1254.0 139.0 Z" fill="url(#shg21)"/><polyline points="1103.0,139.0 1178.5,107.5 1254.0,139.0" fill="none" stroke="#2f5bb5" stroke-width="2" stroke-linejoin="round"/><rect x="1172.5" y="156.1" width="12.0" height="14.0" rx="1.5" fill="#ffcf7a"/><rect x="1224.0" y="156.1" width="12.0" height="14.0" rx="1.5" fill="#ffcf7a"/><path d="M1263.0 200.0 L1263.0 144.0 L1257.0 144.0 L1320.8 111.9 L1421.0 158.0 L1415.0 144.0 L1415.0 200.0 Z" fill="#0b1a30"/><path d="M1257.0 144.0 L1320.8 111.9 L1421.0 158.0 Z" fill="url(#shg21)"/><polyline points="1257.0,144.0 1320.8,111.9 1421.0,158.0" fill="none" stroke="#2f5bb5" stroke-width="2" stroke-linejoin="round"/><rect x="1335.7" y="107.1" width="9.0" height="35.3" fill="#0b1a30"/><rect x="1352.3" y="159.7" width="12.0" height="14.0" rx="1.5" fill="#ffcf7a"/><path d="M1436.0 200.0 L1436.0 151.0 L1430.0 151.0 L1481.1 123.3 L1551.9 123.3 L1603.0 151.0 L1597.0 151.0 L1597.0 200.0 Z" fill="#0b1a30"/><path d="M1430.0 151.0 L1481.1 123.3 L1551.9 123.3 L1603.0 151.0 Z" fill="url(#shg21)"/><polyline points="1430.0,151.0 1481.1,123.3 1551.9,123.3 1603.0,151.0" fill="none" stroke="#2f5bb5" stroke-width="2" stroke-linejoin="round"/><rect x="1493.9" y="117.0" width="9.0" height="32.6" fill="#0b1a30"/><rect x="1489.7" y="164.7" width="12.0" height="14.0" rx="1.5" fill="#ffcf7a"/><rect x="1531.3" y="164.7" width="12.0" height="14.0" rx="1.5" fill="#ffcf7a"/><rect x="1573.0" y="164.7" width="12.0" height="14.0" rx="1.5" fill="#ffcf7a"/><path d="M1609.0 200.0 L1609.0 151.0 L1603.0 151.0 L1654.1 122.2 L1724.9 122.2 L1776.0 151.0 L1770.0 151.0 L1770.0 200.0 Z" fill="#0b1a30"/><path d="M1603.0 151.0 L1654.1 122.2 L1724.9 122.2 L1776.0 151.0 Z" fill="url(#shg21)"/><polyline points="1603.0,151.0 1654.1,122.2 1724.9,122.2 1776.0,151.0" fill="none" stroke="#2f5bb5" stroke-width="2" stroke-linejoin="round"/><rect x="1746.0" y="164.7" width="12.0" height="14.0" rx="1.5" fill="#ffcf7a"/></svg></div>
+<footer>
+  <div class="wrap fgrid2">
+    <div class="fbrand"><span class="brand"><svg width="26" height="26" viewBox="0 0 34 34" aria-hidden="true"><path d="M17 2l12.6 7.3v14.4L17 31 4.4 23.7V9.3z" fill="#1d5cf5"/><path d="M21.5 12.2a6.2 6.2 0 100 9.6" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round"/><circle cx="21.8" cy="17" r="1.8" fill="#fff"/></svg>Command Hub</span><p>Instant lead alerts for roofing companies. Call back first and win the job.</p></div>
+    <nav aria-label="Footer"><b>Product</b><a href="#how">How it works</a><a href="#features">Features</a><a href="#try">Live demo</a><a href="/login">Log in</a></nav>
+    <nav aria-label="Company"><b>Plans</b><a href="#pricing">Pricing</a><a href="#guarantee">Guarantee</a><a href="/signup" data-track="cta" data-track-label="Footer trial">Start a free trial</a><a href="#faq">FAQ</a></nav>
+    <div><b>Contact</b><a href="mailto:hello@commandhub.co" class="fmail">hello@commandhub.co</a><span class="fsmall">Replies usually the same day.</span></div>
+  </div>
+  <div class="wrap fbottom"><span>&copy; 2026 Command Hub. All rights reserved.</span><span><a href="/privacy">Privacy</a></span></div>
+</footer>
+</div>
+
+<script src="/config.js"></script>
+<script src="/track.js"></script>
+<script src="/site.js"></script>
 </body>
 </html>
