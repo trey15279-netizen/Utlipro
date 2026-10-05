@@ -185,7 +185,7 @@
 
     var recent = sorted().slice(0, 6).map(function (l) {
       var end = l.status === "new" && l.phone
-        ? '<a class="btn btn-call btn-sm" href="' + telHref(l.phone) + '" data-action="call" data-id="' + l.id + '">' + ic("i-call") + "Call</a>"
+        ? '<a class="btn btn-soft btn-sm act-call" href="' + telHref(l.phone) + '" data-action="call" data-id="' + l.id + '" aria-label="Call ' + esc(l.name) + '">' + ic("i-call") + "Call</a>"
         : '<span class="st ' + (STATUS[l.status] || STATUS.new).cls + '">' + (STATUS[l.status] || STATUS.new).label + "</span>";
       return '<li><a class="lrow" href="#lead-' + l.id + '">' + avatar(l.name) + '<span class="who"><strong>' + esc(l.name) + "</strong><span>" +
         esc([l.service || l.source, l.city].filter(Boolean).join(" · ")) + '</span></span><span class="when">' + relEl(l.receivedAt) + "</span></a>" +
@@ -293,16 +293,18 @@
         '<span class="lt-cell lt-source">' + esc(l.source) + "</span>" +
         '<span class="lt-cell lt-when">' + relEl(l.receivedAt) + "</span>" +
         '<span class="lt-status">' + pill(l.status) + "</span>" +
-        '<div class="lt-actions">' + contactButtons(l, "btn-sm") + ic("i-chev") + "</div></div>";
+        '<div class="lt-actions">' + contactButtons(l, true) + ic("i-chev") + "</div></div>";
     }).join("");
     return bulk + head + '<div class="lt-body">' + rows + "</div>";
   }
-  function contactButtons(l, size) {
+  // compact: quiet outline buttons for table rows. Otherwise Call is the one solid action.
+  function contactButtons(l, compact) {
+    var size = compact ? " btn-sm" : "", who = esc(l.name);
     if (l.phone) {
-      return '<a class="btn btn-call ' + size + '" href="' + telHref(l.phone) + '" data-action="call" data-id="' + l.id + '">' + ic("i-call") + "Call</a>" +
-        '<a class="btn btn-primary ' + size + '" href="' + smsHref(l.phone, textTemplate(l)) + '" data-action="text" data-id="' + l.id + '">' + ic("i-chat") + "Text</a>";
+      return '<a class="btn ' + (compact ? "btn-soft act-call" : "btn-call") + size + '" href="' + telHref(l.phone) + '" data-action="call" data-id="' + l.id + '" aria-label="Call ' + who + '">' + ic("i-call") + "<span>Call</span></a>" +
+        '<a class="btn btn-soft act-text' + size + '" href="' + smsHref(l.phone, textTemplate(l)) + '" data-action="text" data-id="' + l.id + '" aria-label="Text ' + who + '">' + ic("i-chat") + "<span>Text</span></a>";
     }
-    return '<a class="btn btn-primary ' + size + '" href="mailto:' + esc(l.email) + '">' + ic("i-mail") + "Email</a>";
+    return '<a class="btn btn-soft' + size + '" href="mailto:' + esc(l.email) + '" aria-label="Email ' + who + '">' + ic("i-mail") + "<span>Email</span></a>";
   }
 
   function viewLead(id) {
@@ -358,7 +360,7 @@
       '<ul class="contact-list">' + (l.phone ? "<li>" + ic("i-phone") + '<span class="num">' + esc(l.phone) + "</span></li>" : "") +
       (l.email ? "<li>" + ic("i-mail") + esc(l.email) + "</li>" : "") +
       (l.city ? "<li>" + ic("i-pin") + esc(l.city) + "</li>" : "") + "</ul></div>" +
-      '<div class="profile-cta">' + contactButtons(l, "") + "</div></div></section>" +
+      '<div class="profile-cta">' + contactButtons(l, false) + "</div></div></section>" +
       '<section class="card card-pad"><div class="tabs" style="margin-bottom:18px">' + tabs + "</div>" + body + "</section></div>" +
       '<div class="stack"><section class="card card-pad"><h3 class="section-title">Lead Status</h3><div class="stepper">' +
       stepBtn("new", "New") + sep + stepBtn("contacted", "Contacted") + sep + stepBtn("appointment", "Appointment") + sep + stepBtn("won", "Won") + stepBtn("lost", "Lost") +
