@@ -1,0 +1,58 @@
+{
+  "settings": {
+    "minimum_net_profit": 75,
+    "sales_tax_rate": 0.08,
+    "unknown_shipping_estimate": 15,
+    "quote_max_age_days": 7,
+    "min_seller_feedback_percent": 98.0,
+    "min_seller_feedback_score": 25,
+    "weekly_target": 10
+  },
+  "phones": [
+    {
+      "name": "iPhone 13 128GB Unlocked",
+      "query": "iPhone 13 128GB unlocked",
+      "required_words": ["iphone 13", "128", "unlocked"],
+      "excluded_words": ["mini", "pro", "max"],
+      "ebay_condition_ids": ["2010", "2020", "2030", "3000"],
+      "buyer_quotes": [
+        {
+          "buyer": "BankMyCell",
+          "payout": null,
+          "outbound_shipping": 0,
+          "payout_fee": 0,
+          "grading_deduction": 0,
+          "quoted_on": null,
+          "quote_url": ""
+        },
+        {
+          "buyer": "GadgetGone",
+          "payout": null,
+          "outbound_shipping": 0,
+          "payout_fee": 0,
+          "grading_deduction": 0,
+          "quoted_on": null,
+          "quote_url": ""
+        },
+        {
+          "buyer": "BuyBackBoss",
+          "payout": null,
+          "outbound_shipping": 0,
+          "payout_fee": 0,
+          "grading_deduction": 0,
+          "quoted_on": null,
+          "quote_url": ""
+        },
+        {
+          "buyer": "ItsWorthMore",
+          "payout": null,
+          "outbound_shipping": 0,
+          "payout_fee": 0,
+          "grading_deduction": 0,
+          "quoted_on": null,
+          "quote_url": ""
+        }
+      ]
+    }
+  ]
+}
