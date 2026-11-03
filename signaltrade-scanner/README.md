@@ -4,10 +4,11 @@ Finds underpriced phones on eBay that already have a verified, profitable
 buyback exit. It never buys anything: it alerts you, and you check and approve
 every purchase yourself.
 
-**First milestone:** 10 verified opportunities a week, not 10 purchases. Then
-log what you buy and what you're paid, so `report` shows whether the estimates
-hold up: how many you bought, how many were paid the full quote, and the net
-profit you actually collected.
+**First milestone:** 10 verified opportunities a week, not 10 purchases.
+Before adding features, get real eBay data flowing, enter verified buyer
+quotes, and work 10–20 listings through by hand. The goal is to prove phones
+can be bought, verified and resold profitably, not just that listings look
+profitable on paper.
 
 ## How it works
 
@@ -50,30 +51,66 @@ legitimate. Every alert ends with this checklist:
 
 ## Track results
 
+Record each stage as it happens. Each command prints the phone's purchase
+decision record. The item ID is in the alert.
+
 ```sh
-python scanner.py bought ITEM_ID 189.50   # everything you spent, incl. tax and shipping out
-python scanner.py paid ITEM_ID 240        # what actually reached you
-python scanner.py report
+# 1. Bought: what you actually paid, split out. Tax is what eBay charged.
+python scanner.py bought ITEM_ID --price 150 --shipping 0 --tax 12.38 \
+    --imei clean --imei-last4 3809
+
+# 2. Your own inspection when it arrives
+python scanner.py inspected ITEM_ID pass --notes "screen clean, battery 88%"
+
+# 3. Sent to the buyer (defaults to the buyer in the alert)
+python scanner.py sent ITEM_ID --shipping 0 --other-costs 1.50
+python scanner.py sent ITEM_ID --buyer ItsWorthMore --expected-payout 255 --shipping 0
+
+# 4. Paid: the money that actually reached you
+python scanner.py paid ITEM_ID 270
+
+python scanner.py show ITEM_ID   # the full record
+python scanner.py report         # weekly count and results by stage
 ```
 
-The item ID is in each alert. A phone counts as passing inspection if the
-buyer paid at least the quoted amount.
+`--imei` is `clean`, `flagged` or `not-checked`. Only the last 4 digits of the
+IMEI are stored. A full IMEI is refused.
+
+### How profit is counted
+
+Each cost is entered once, at the stage where you pay it:
 
 ```
-Last 7 days: 11 verified opportunities (target 10)
-  ...
+acquisition cost = price + shipping to you + sales tax       (bought)
+selling costs    = shipping to buyer + other selling costs   (sent)
+payout received  = money that reached you                    (paid)
+
+actual profit    = payout received - acquisition cost - selling costs
+```
+
+Payout fees (PayPal, check fees) are already taken out of what you receive, so
+don't enter them as other selling costs too.
+
+Inspection and payout are tracked separately. Your inspection is pass or fail.
+The payout is "full" if you received at least the expected payout (the quote
+minus its payout fee) and "reduced" if not. So a phone can pass your
+inspection and still be paid less.
+
+```
 All time:
-  Surfaced:            38
-  Bought:              6
-  Paid out:            5
-  Paid full quote:     4 of 5
-  Net profit collected: $412.00
-  Estimated for those:  $498.00
-  Average per phone:    $82.40
-  Waiting on payout:   1
+  Surfaced:             38
+  Purchased:            6
+  Inspected:            6  (passed 5, failed 1)
+  Sent to buyer:        5
+  Paid:                 4  (full 3, reduced 1)
+  Actual profit:        $371.00
+  Estimated for those:  $448.00
+  Average per phone:    $92.75
+  Bought, not sent:     1
+  Waiting on payout:    1
 ```
 
-If collected profit keeps falling short of the estimate, raise
+If actual profit keeps falling short of the estimate, raise
 `grading_deduction` for that buyer or raise `profit_buffer`.
 
 ## Buyer quotes
@@ -124,7 +161,7 @@ Schedule it with cron to scan a few times a day:
 ```
 
 History is kept in `data/alerted.json`, which isn't committed. Back it up: it
-holds your purchase and payout log.
+holds every purchase decision record.
 
 ## Test
 

@@ -3,14 +3,19 @@
 It never buys anything. It surfaces listings whose estimated net profit, after
 every cost and a safety buffer, beats your target against a buyer quote for
 the exact same phone, and alerts you so you can check and approve each
-purchase yourself. Then you log what you bought and what you were paid, so
-the report shows whether the estimates hold up.
+purchase yourself. Then you record each phone's purchase, inspection, sale
+and payout, so the report shows whether the estimates hold up.
 
     python scanner.py                     scan and alert on new opportunities
     python scanner.py scan --no-alerts    scan and print only
-    python scanner.py report              weekly count and buy/inspection results
-    python scanner.py bought ITEM_ID COST     log a purchase (all-in cost)
-    python scanner.py paid ITEM_ID AMOUNT     log what the buyer paid you
+    python scanner.py report              weekly count and results by stage
+    python scanner.py show ITEM_ID        the purchase decision record
+
+Then record each stage as it happens (see tracking.py for the money rules):
+    python scanner.py bought ITEM_ID --price P --shipping S --tax T --imei clean --imei-last4 1234
+    python scanner.py inspected ITEM_ID pass|fail [--notes "..."]
+    python scanner.py sent ITEM_ID [--buyer B --expected-payout X] --shipping S [--other-costs C]
+    python scanner.py paid ITEM_ID RECEIVED
 """
 
 import argparse
@@ -18,12 +23,13 @@ import base64
 import json
 import os
 import sys
-from datetime import date, datetime, timedelta, timezone
+from datetime import date
 from pathlib import Path
 
 import requests
 
 import alerts
+import tracking
 
 HERE = Path(__file__).resolve().parent
 CONFIG_PATH = Path(os.environ.get("SIGNALTRADE_CONFIG", HERE / "config.json"))
@@ -299,91 +305,6 @@ def scan(config, search=search_ebay, today=None):
     return deals, warnings
 
 
-# ---------- History: surfaced, bought, paid ----------
-
-def load_state(path=STATE_PATH):
-    try:
-        with open(path) as f:
-            return json.load(f)
-    except FileNotFoundError:
-        return {"alerted": {}}
-
-
-def save_state(state, path=STATE_PATH):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w") as f:
-        json.dump(state, f, indent=2)
-
-
-def new_deals(deals, state):
-    return [d for d in deals if d["item_id"] not in state["alerted"]]
-
-
-def record_alerted(deals, state, now=None):
-    now = now or datetime.now(timezone.utc)
-    for deal in deals:
-        best = deal["best"]
-        state["alerted"][deal["item_id"]] = {
-            "at": now.isoformat(),
-            "phone": deal["phone"],
-            "title": deal["title"],
-            "buyer": best["buyer"],
-            "quoted_payout": best["payout"],
-            "estimated_cost": best["buy_cost"],
-            "net_profit": best["net_profit"],
-            "url": deal["url"],
-        }
-
-
-def record_bought(state, item_id, cost):
-    entry = state["alerted"].get(item_id)
-    if entry is None:
-        raise SystemExit(f"{item_id} isn't in the alert history.")
-    entry["bought_cost"] = round(cost, 2)
-
-
-def record_paid(state, item_id, amount):
-    entry = state["alerted"].get(item_id)
-    if entry is None or "bought_cost" not in entry:
-        raise SystemExit(f"Log the purchase of {item_id} with 'bought' first.")
-    entry["paid"] = round(amount, 2)
-
-
-def report(state, weekly_target, now=None):
-    now = now or datetime.now(timezone.utc)
-    since = now - timedelta(days=7)
-    entries = list(state["alerted"].values())
-    recent = [e for e in entries if datetime.fromisoformat(e["at"]) >= since]
-
-    lines = [f"Last 7 days: {len(recent)} verified opportunities (target {weekly_target})"]
-    for entry in sorted(recent, key=lambda e: e["net_profit"], reverse=True):
-        lines.append(f"  ${entry['net_profit']:>7.2f} est.  {entry['buyer']:<14} {entry['title']}")
-
-    bought = [e for e in entries if "bought_cost" in e]
-    paid = [e for e in bought if "paid" in e]
-    passed = [e for e in paid if e["paid"] >= e["quoted_payout"]]
-    lines += [
-        "",
-        "All time:",
-        f"  Surfaced:            {len(entries)}",
-        f"  Bought:              {len(bought)}",
-        f"  Paid out:            {len(paid)}",
-        f"  Paid full quote:     {len(passed)} of {len(paid)}",
-    ]
-    if paid:
-        actual = sum(e["paid"] - e["bought_cost"] for e in paid)
-        estimated = sum(e["net_profit"] for e in paid)
-        lines += [
-            f"  Net profit collected: ${actual:.2f}",
-            f"  Estimated for those:  ${estimated:.2f}",
-            f"  Average per phone:    ${actual / len(paid):.2f}",
-        ]
-    waiting = len(bought) - len(paid)
-    if waiting:
-        lines.append(f"  Waiting on payout:   {waiting}")
-    return "\n".join(lines)
-
-
 # ---------- Output ----------
 
 def describe(deal, settings):
@@ -413,43 +334,88 @@ def describe(deal, settings):
 def main(argv=None):
     parser = argparse.ArgumentParser(description="SignalTrade Scanner")
     commands = parser.add_subparsers(dest="command")
+
     scan_cmd = commands.add_parser("scan", help="scan and alert (default)")
     scan_cmd.add_argument("--no-alerts", action="store_true", help="print only, don't notify")
-    commands.add_parser("report", help="weekly count and buy/inspection results")
-    bought_cmd = commands.add_parser("bought", help="log a purchase")
-    bought_cmd.add_argument("item_id")
-    bought_cmd.add_argument("cost", type=float,
-                            help="everything you spent: price, shipping, tax, shipping out")
-    paid_cmd = commands.add_parser("paid", help="log what the buyer paid you")
-    paid_cmd.add_argument("item_id")
-    paid_cmd.add_argument("amount", type=float, help="what actually reached you")
-    args = parser.parse_args(argv)
 
+    commands.add_parser("report", help="weekly count and results by stage")
+
+    show_cmd = commands.add_parser("show", help="purchase decision record for one phone")
+    show_cmd.add_argument("item_id")
+
+    bought = commands.add_parser("bought", help="you bought the phone")
+    bought.add_argument("item_id")
+    bought.add_argument("--price", type=float, required=True)
+    bought.add_argument("--shipping", type=float, required=True, help="shipping to you")
+    bought.add_argument("--tax", type=float, required=True, help="sales tax actually charged")
+    bought.add_argument("--imei", required=True, choices=tracking.IMEI_RESULTS,
+                        help="result of your IMEI check")
+    bought.add_argument("--imei-last4", help="last 4 digits only, never the full IMEI")
+    bought.add_argument("--date", type=date.fromisoformat)
+
+    inspected = commands.add_parser("inspected", help="you inspected the phone")
+    inspected.add_argument("item_id")
+    inspected.add_argument("result", choices=("pass", "fail"))
+    inspected.add_argument("--notes", default="")
+    inspected.add_argument("--date", type=date.fromisoformat)
+
+    sent = commands.add_parser("sent", help="you sent the phone to a buyer")
+    sent.add_argument("item_id")
+    sent.add_argument("--buyer", help="defaults to the buyer in the alert")
+    sent.add_argument("--expected-payout", type=float,
+                      help="needed if sending to a different buyer")
+    sent.add_argument("--shipping", type=float, default=0, help="shipping to buyer")
+    sent.add_argument("--other-costs", type=float, default=0,
+                      help="packaging etc. Not payout fees: those come off what you receive")
+    sent.add_argument("--date", type=date.fromisoformat)
+
+    paid = commands.add_parser("paid", help="the buyer paid you")
+    paid.add_argument("item_id")
+    paid.add_argument("received", type=float, help="money that actually reached you")
+    paid.add_argument("--date", type=date.fromisoformat)
+
+    args = parser.parse_args(argv)
     config = load_config()
     settings = config["settings"]
-    state = load_state()
+    state = tracking.load_state(STATE_PATH)
 
     if args.command == "report":
-        print(report(state, settings["weekly_target"]))
+        print(tracking.report(state, settings["weekly_target"]))
         return
-    if args.command == "bought":
-        record_bought(state, args.item_id, args.cost)
-        save_state(state)
-        print(f"Logged purchase of {args.item_id} at ${args.cost:.2f}.")
+    if args.command == "show":
+        try:
+            entry = state["alerted"][args.item_id]
+        except KeyError:
+            raise SystemExit(f"{args.item_id} isn't in the alert history.")
+        print(tracking.decision_record(args.item_id, entry))
         return
-    if args.command == "paid":
-        record_paid(state, args.item_id, args.amount)
-        save_state(state)
-        entry = state["alerted"][args.item_id]
-        print(f"Logged ${args.amount:.2f} paid. Net ${args.amount - entry['bought_cost']:.2f} "
-              f"(estimated ${entry['net_profit']:.2f}).")
+
+    stages = {
+        "bought": lambda: tracking.record_purchase(
+            state, args.item_id, args.price, args.shipping, args.tax,
+            args.imei, args.imei_last4, on=args.date),
+        "inspected": lambda: tracking.record_inspection(
+            state, args.item_id, args.result == "pass", args.notes, on=args.date),
+        "sent": lambda: tracking.record_sent(
+            state, args.item_id, args.buyer, args.shipping, args.other_costs,
+            args.expected_payout, on=args.date),
+        "paid": lambda: tracking.record_payout(
+            state, args.item_id, args.received, on=args.date),
+    }
+    if args.command in stages:
+        try:
+            stages[args.command]()
+        except tracking.TrackingError as error:
+            raise SystemExit(str(error))
+        tracking.save_state(state, STATE_PATH)
+        print(tracking.decision_record(args.item_id, state["alerted"][args.item_id]))
         return
 
     deals, warnings = scan(config)
     for warning in warnings:
         print(f"! {warning}")
 
-    fresh = new_deals(deals, state)
+    fresh = tracking.new_deals(deals, state)
     print(f"\n{len(deals)} listings clear ${required_profit(settings)} "
           f"(${settings['minimum_net_profit']} + ${settings['profit_buffer']} buffer), "
           f"{len(fresh)} new.\n")
@@ -457,11 +423,11 @@ def main(argv=None):
         print(describe(deal, settings) + "\n")
 
     if fresh and not getattr(args, "no_alerts", False):
-        sent = alerts.send([describe(d, settings) for d in fresh])
-        if sent:
-            print(f"Alert sent by {', '.join(sent)}.")
-        record_alerted(fresh, state)
-        save_state(state)
+        sent_by = alerts.send([describe(d, settings) for d in fresh])
+        if sent_by:
+            print(f"Alert sent by {', '.join(sent_by)}.")
+        tracking.record_alerted(fresh, state)
+        tracking.save_state(state, STATE_PATH)
 
     print(alerts.CHECKLIST)
 

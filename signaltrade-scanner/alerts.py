@@ -14,8 +14,8 @@ CHECKLIST = """Nothing has been bought. Before you approve a purchase:
   3. Ask the seller for the IMEI and check it isn't blacklisted, financed or carrier-locked.
   4. Confirm Activation Lock / Find My is off and the seller owns the phone.
   5. Compare the photos to the condition the quote assumes.
-After buying: python scanner.py bought ITEM_ID COST
-When paid:    python scanner.py paid ITEM_ID AMOUNT"""
+Record each stage as it happens (python scanner.py --help):
+  bought, inspected, sent, paid"""
 
 
 def build_message(descriptions):

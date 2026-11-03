@@ -3,6 +3,8 @@ from datetime import date, datetime, timedelta, timezone
 
 import alerts
 import scanner
+import tracking
+from tracking import TrackingError
 
 TODAY = date(2026, 11, 3)
 # Bar is 75 + 25 = 100 net
@@ -145,49 +147,115 @@ class ScanTest(unittest.TestCase):
 class HistoryTest(unittest.TestCase):
     now = datetime(2026, 11, 3, tzinfo=timezone.utc)
 
-    def alerted_state(self, *prices):
+    def alerted_state(self, *prices, payout_fee=0):
         state = {"alerted": {}}
         for i, price in enumerate(prices):
-            deal = scanner.evaluate(listing(price=price, item_id=f"x{i}"), PHONE,
-                                    [quote("A", 300)], SETTINGS)
-            scanner.record_alerted([deal], state, now=self.now)
+            deal = scanner.evaluate(
+                listing(price=price, item_id=f"x{i}"), PHONE,
+                [quote("A", 300, payout_fee=payout_fee)], SETTINGS)
+            tracking.record_alerted([deal], state, now=self.now)
         return state
 
+    def through_payout(self, state, item_id, received, passed=True,
+                       price=100, shipping=10, tax=8, ship_out=0, other=0):
+        tracking.record_purchase(state, item_id, price, shipping, tax, "clean", "4821",
+                                 on=date(2026, 11, 4))
+        tracking.record_inspection(state, item_id, passed, on=date(2026, 11, 6))
+        tracking.record_sent(state, item_id, shipping=ship_out, other_costs=other,
+                             on=date(2026, 11, 6))
+        if received is not None:
+            tracking.record_payout(state, item_id, received, on=date(2026, 11, 12))
+
     def test_alerts_once_and_counts_the_week(self):
-        deal = scanner.evaluate(listing(price=100, item_id="x0"), PHONE,
-                                [quote("A", 300)], SETTINGS)
-        state = {"alerted": {}}
-        self.assertEqual(len(scanner.new_deals([deal], state)), 1)
-        scanner.record_alerted([deal], state, now=self.now)
-        self.assertEqual(scanner.new_deals([deal], state), [])
-
-        self.assertIn("1 verified opportunities (target 10)",
-                      scanner.report(state, 10, now=self.now))
-        later = self.now + timedelta(days=8)
-        self.assertIn("0 verified opportunities", scanner.report(state, 10, now=later))
-
-    def test_tracks_purchases_inspection_and_profit(self):
-        state = self.alerted_state(100, 110, 120)  # est. net 190, 179, 168
-        scanner.record_bought(state, "x0", 115)
-        scanner.record_bought(state, "x1", 125)
-        scanner.record_bought(state, "x2", 135)
-        scanner.record_paid(state, "x0", 300)  # full quote
-        scanner.record_paid(state, "x1", 260)  # regraded down
-
-        text = scanner.report(state, 10, now=self.now)
-        self.assertIn("Surfaced:            3", text)
-        self.assertIn("Bought:              3", text)
-        self.assertIn("Paid full quote:     1 of 2", text)
-        self.assertIn("Net profit collected: $320.00", text)  # 185 + 135
-        self.assertIn("Estimated for those:  $369.00", text)
-        self.assertIn("Waiting on payout:   1", text)
-
-    def test_paid_needs_a_purchase_first(self):
         state = self.alerted_state(100)
-        with self.assertRaises(SystemExit):
-            scanner.record_paid(state, "x0", 300)
-        with self.assertRaises(SystemExit):
-            scanner.record_bought(state, "unknown", 100)
+        deal = {"item_id": "x0"}
+        self.assertEqual(tracking.new_deals([deal], state), [])
+        self.assertIn("1 verified opportunities (target 10)",
+                      tracking.report(state, 10, now=self.now))
+        later = self.now + timedelta(days=8)
+        self.assertIn("0 verified opportunities", tracking.report(state, 10, now=later))
+
+    def test_actual_profit_counts_each_cost_once(self):
+        state = self.alerted_state(100, payout_fee=5)
+        self.through_payout(state, "x0", received=295, price=100, shipping=10,
+                            tax=8.8, ship_out=6, other=2)
+        entry = state["alerted"]["x0"]
+        self.assertEqual(entry["purchase"]["acquisition_cost"], 118.8)
+        # 295 received (fee already taken) - 118.80 - 6 - 2; fee not taken again
+        self.assertEqual(tracking.actual_profit(entry), 168.2)
+        self.assertEqual(entry["sent"]["expected_payout"], 295)
+        self.assertFalse(tracking.payout_reduced(entry))
+
+    def test_inspection_and_payout_are_separate(self):
+        state = self.alerted_state(100, 110, 120, 130)
+        self.through_payout(state, "x0", received=300)               # passed, full
+        self.through_payout(state, "x1", received=260)               # passed, reduced
+        self.through_payout(state, "x2", received=200, passed=False)  # failed, sold anyway
+        self.through_payout(state, "x3", received=None)              # waiting
+
+        text = tracking.report(state, 10, now=self.now)
+        self.assertIn("Purchased:            4", text)
+        self.assertIn("Inspected:            4  (passed 3, failed 1)", text)
+        self.assertIn("Sent to buyer:        4", text)
+        self.assertIn("Paid:                 3  (full 1, reduced 2)", text)
+        self.assertIn("Actual profit:        $406.00", text)  # 182 + 142 + 82
+        self.assertIn("Waiting on payout:    1", text)
+
+    def test_stages_happen_in_order(self):
+        state = self.alerted_state(100)
+        with self.assertRaises(TrackingError):
+            tracking.record_inspection(state, "x0", True)
+        tracking.record_purchase(state, "x0", 100, 0, 8, "clean")
+        with self.assertRaises(TrackingError):
+            tracking.record_purchase(state, "x0", 100, 0, 8, "clean")
+        with self.assertRaises(TrackingError):
+            tracking.record_sent(state, "x0")
+        tracking.record_inspection(state, "x0", True)
+        with self.assertRaises(TrackingError):
+            tracking.record_payout(state, "x0", 300)
+        with self.assertRaises(TrackingError):
+            tracking.record_purchase(state, "unknown", 100, 0, 8, "clean")
+
+    def test_other_buyer_needs_its_own_expected_payout(self):
+        state = self.alerted_state(100)
+        tracking.record_purchase(state, "x0", 100, 0, 8, "clean")
+        tracking.record_inspection(state, "x0", True)
+        with self.assertRaises(TrackingError):
+            tracking.record_sent(state, "x0", buyer="Other")
+        tracking.record_sent(state, "x0", buyer="Other", expected_payout=280)
+        self.assertEqual(state["alerted"]["x0"]["sent"]["expected_payout"], 280)
+
+    def test_never_stores_a_full_imei(self):
+        state = self.alerted_state(100)
+        for bad in ("356938035643809", "12345", "12a4"):
+            with self.assertRaises(TrackingError):
+                tracking.record_purchase(state, "x0", 100, 0, 8, "clean", bad)
+        with self.assertRaises(TrackingError):
+            tracking.record_purchase(state, "x0", 100, 0, 8, "probably fine")
+
+    def test_decision_record(self):
+        state = self.alerted_state(100)
+        self.through_payout(state, "x0", received=290)
+        text = tracking.decision_record("x0", state["alerted"]["x0"])
+        for line in ("Listing:           https://www.ebay.com/itm/1",
+                     "Seller:            seller1",
+                     "IMEI check:        clean (ends 4821)",
+                     "Inspection:        passed",
+                     "Purchased:         2026-11-04",
+                     "Paid:              2026-11-12",
+                     "Expected payout:   $300.00",
+                     "Actual payout:     $290.00",
+                     "Actual profit:     $172.00"):
+            self.assertIn(line, text)
+
+    def test_decision_record_mid_way(self):
+        state = self.alerted_state(100)
+        text = tracking.decision_record("x0", state["alerted"]["x0"])
+        self.assertIn("Purchased:         -", text)
+        tracking.record_purchase(state, "x0", 100, 0, 8, "not-checked")
+        text = tracking.decision_record("x0", state["alerted"]["x0"])
+        self.assertIn("Selling costs:     -", text)
+        self.assertIn("IMEI check:        not-checked", text)
 
     def test_message_has_the_checklist(self):
         subject, body = alerts.build_message(["deal one", "deal two"])
