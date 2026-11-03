@@ -199,6 +199,37 @@ class AppTest(unittest.TestCase):
             html = self.post("/scan").data.decode()
         self.assertIn("The scan didn&#39;t run: eBay keys", html)
 
+    def test_installable_app_shell(self):
+        manifest = json.loads(self.client.get("/manifest.webmanifest").data)
+        self.assertEqual((manifest["name"], manifest["display"]), ("SignalTrade", "standalone"))
+        for url in ("/sw.js", "/favicon.ico", "/static/icons/icon-512.png", "/static/icons/icon.svg"):
+            self.assertEqual(self.client.get(url).status_code, 200, url)
+        self.assertIn('rel="manifest"', self.client.get("/").data.decode())
+
+    def test_quit_stops_the_app(self):
+        import app as app_module
+        with mock.patch.object(app_module.threading, "Timer") as timer:
+            html = self.post("/quit").data.decode()
+        self.assertIn("SignalTrade has quit", html)
+        timer.assert_called_once()
+        self.assertIs(timer.return_value.start.called, True)
+
+    def test_app_window_uses_installed_browser(self):
+        import app as app_module
+        with mock.patch.object(app_module, "browser_candidates", return_value=["/x/chrome"]), \
+                mock.patch.object(app_module.os.path, "exists", return_value=True), \
+                mock.patch.object(app_module.subprocess, "Popen") as popen, \
+                mock.patch.object(app_module.webbrowser, "open") as fallback:
+            app_module.open_app_window("http://127.0.0.1:8000")
+        args = popen.call_args[0][0]
+        self.assertEqual(args[0], "/x/chrome")
+        self.assertIn("--app=http://127.0.0.1:8000", args)
+        fallback.assert_not_called()
+        with mock.patch.object(app_module, "browser_candidates", return_value=[]), \
+                mock.patch.object(app_module.webbrowser, "open") as fallback:
+            app_module.open_app_window("http://127.0.0.1:8000")
+        fallback.assert_called_once_with("http://127.0.0.1:8000")
+
     def test_csrf_required(self):
         self.app.config["TESTING_NO_CSRF"] = False
         self.assertEqual(self.client.post("/scan").status_code, 400)

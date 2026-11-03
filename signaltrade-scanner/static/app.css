@@ -161,3 +161,16 @@ details summary{cursor:pointer;color:var(--muted);font-size:12px}
   .nav a{flex:none;padding:0 10px}
   .top .actions{width:100%}
 }
+
+/* Feel like a desktop app */
+html{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+.side,.nav,.btn,.lbl,.tag,.steps,th,summary,.status{-webkit-user-select:none;user-select:none}
+.btn,.nav a,summary,.chk,.pick label,.deal{-webkit-tap-highlight-color:transparent}
+.btn:active{transform:translateY(1px)}
+.back{font-size:13px;color:var(--muted);margin-right:2px}
+.back:hover{color:var(--text)}
+.side{position:sticky;top:0;align-self:flex-start;min-height:100vh;max-height:100vh;overflow-y:auto}
+@media (max-width:640px){.side{position:static;min-height:0;max-height:none}}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:#2A2E33;border-radius:5px;border:2px solid var(--bg)}
+::-webkit-scrollbar-track{background:transparent}

@@ -3,17 +3,27 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{% block title %}Overview{% endblock %} · SignalTrade Scanner</title>
+<title>{% block title %}Home{% endblock %} · SignalTrade</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#0E0F11">
+<meta name="application-name" content="SignalTrade">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="SignalTrade">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='icons/icon-32.png') }}">
+<link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='icons/icon.svg') }}">
+<link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-180.png') }}">
+<script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});</script>
 </head>
 <body>
 <div class="shell">
   <aside class="side">
     <a class="brand" href="{{ url_for('overview') }}">
-      <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><rect x=".5" y=".5" width="25" height="25" rx="5" fill="#15171A" stroke="#2C3036"/><path d="M6 16.5l4-4 3 3 6.5-7" fill="none" stroke="#3FB984" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <img src="{{ url_for('static', filename='icons/icon.svg') }}" width="28" height="28" alt="">
       <div><b>SignalTrade</b><span>Scanner</span></div>
     </a>
     <nav class="nav" aria-label="Main">
@@ -50,12 +60,18 @@
         {% if status.email or status.sms %}<span><i class="dot"></i>{{ 'Email' if status.email }}{{ ' + ' if status.email and status.sms }}{{ 'Text' if status.sms }}</span>
         {% else %}<a class="amber" href="{{ url_for('settings_page') }}#connections"><i class="dot off"></i>Off</a>{% endif %}</div>
     </section>
-    <div class="foot">SignalTrade Electronics<br><i>Buy Smart. Sell Better.</i></div>
+    <div class="foot" style="display:flex;align-items:flex-end;justify-content:space-between;gap:8px">
+      <span>SignalTrade Electronics<br><i>Buy Smart. Sell Better.</i></span>
+      <form method="post" action="{{ url_for('quit_app') }}" onsubmit="return confirm('Quit SignalTrade? Scheduled scans stop until you open it again.')">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <button class="btn sm" type="submit" title="Quit SignalTrade">Quit</button>
+      </form>
+    </div>
   </aside>
 
   <main class="main">
     <header class="top">
-      <div class="title"><h1>{% block heading %}{% endblock %}</h1><span class="dim small">{% block sub %}{% endblock %}</span></div>
+      <div class="title">{% block back %}{% endblock %}<h1>{% block heading %}{% endblock %}</h1><span class="dim small">{% block sub %}{% endblock %}</span></div>
       <div class="actions">
         {% block actions %}
         <form method="post" action="{{ url_for('scan_page') }}" class="inline">

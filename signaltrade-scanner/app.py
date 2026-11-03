@@ -12,6 +12,9 @@ eBay, and only after every pre-purchase check is ticked.
 
 import os
 import secrets
+import shutil
+import subprocess
+import sys
 import threading
 import time
 import webbrowser
@@ -19,7 +22,7 @@ from datetime import date, datetime, timedelta, timezone
 
 import requests
 from flask import (Flask, abort, flash, redirect, render_template, request,
-                   session, url_for)
+                   send_from_directory, session, url_for)
 
 import alerts
 import keys
@@ -695,6 +698,37 @@ def create_app(start_scheduler=False):
                 flash("Fill in the email or text settings first.", "error")
         return redirect(url_for("settings_page") + "#connections")
 
+    # ----- App shell -----
+
+    @app.get("/manifest.webmanifest")
+    def manifest():
+        return app.response_class(
+            '{"name":"SignalTrade","short_name":"SignalTrade","start_url":"/","scope":"/",'
+            '"display":"standalone","background_color":"#0E0F11","theme_color":"#0E0F11",'
+            '"icons":[{"src":"/static/icons/icon-192.png","sizes":"192x192","type":"image/png"},'
+            '{"src":"/static/icons/icon-512.png","sizes":"512x512","type":"image/png"},'
+            '{"src":"/static/icons/icon-512.png","sizes":"512x512","type":"image/png","purpose":"maskable"}]}',
+            mimetype="application/manifest+json")
+
+    @app.get("/sw.js")
+    def service_worker():
+        # Lets the browser install SignalTrade as an app. It caches nothing:
+        # every page always shows your latest data.
+        return app.response_class(
+            "self.addEventListener('install',()=>self.skipWaiting());"
+            "self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));"
+            "self.addEventListener('fetch',()=>{});",
+            mimetype="text/javascript", headers={"Cache-Control": "no-cache"})
+
+    @app.get("/favicon.ico")
+    def favicon():
+        return send_from_directory(os.path.join(app.root_path, "static", "icons"), "signaltrade.ico")
+
+    @app.post("/quit")
+    def quit_app():
+        threading.Timer(0.5, lambda: os._exit(0)).start()
+        return render_template("quit.html")
+
     # Old addresses
     app.add_url_rule("/opportunities", "old_opps", lambda: redirect(url_for("opportunities")))
     app.add_url_rule("/inventory", "old_inv", lambda: redirect(url_for("inventory")))
@@ -705,6 +739,52 @@ def create_app(start_scheduler=False):
     if start_scheduler:
         threading.Thread(target=scheduler_loop, daemon=True).start()
     return app
+
+
+APP_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+def browser_candidates():
+    """Chromium-based browsers that can open a page as its own app window."""
+    if sys.platform == "darwin":
+        return [f"/Applications/{name}.app/Contents/MacOS/{name}" for name in
+                ("Google Chrome", "Microsoft Edge", "Brave Browser", "Chromium", "Arc")]
+    if sys.platform.startswith("win"):
+        roots = [os.environ.get(k, "") for k in ("PROGRAMFILES", "PROGRAMFILES(X86)", "LOCALAPPDATA")]
+        tails = (r"Microsoft\Edge\Application\msedge.exe", r"Google\Chrome\Application\chrome.exe",
+                 r"BraveSoftware\Brave-Browser\Application\brave.exe")
+        return [os.path.join(r, t) for t in tails for r in roots if r]
+    return [shutil.which(n) or "" for n in
+            ("google-chrome", "google-chrome-stable", "microsoft-edge", "chromium", "chromium-browser", "brave-browser")]
+
+
+def open_app_window(address):
+    """Open SignalTrade in its own window (no tabs or address bar), like a desktop app.
+
+    Uses its own browser profile so it gets its own window and Dock/taskbar icon.
+    Falls back to a normal browser tab if no Chromium-based browser is installed.
+    """
+    profile = os.path.join(APP_DIR, "data", "app-window")
+    for path in browser_candidates():
+        if path and os.path.exists(path):
+            try:
+                subprocess.Popen(
+                    [path, f"--app={address}", f"--user-data-dir={profile}",
+                     "--window-size=1440,900", "--no-first-run", "--no-default-browser-check"],
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                return
+            except OSError:
+                continue
+    webbrowser.open(address)
+
+
+def log_to_file_if_windowless():
+    """pythonw (Windows) and the Mac app have no console; keep output in a log."""
+    if sys.stdout is None or sys.stderr is None:
+        os.makedirs(os.path.join(APP_DIR, "data"), exist_ok=True)
+        log = open(os.path.join(APP_DIR, "data", "signaltrade.log"), "a", buffering=1)
+        sys.stdout = sys.stdout or log
+        sys.stderr = sys.stderr or log
 
 
 def already_running(host, port):
@@ -718,11 +798,12 @@ if __name__ == "__main__":
     host = os.environ.get("HOST", "127.0.0.1")
     port = int(os.environ.get("PORT", "8000"))
     address = f"http://{host}:{port}"
+    log_to_file_if_windowless()
     if already_running(host, port):
         print(f"SignalTrade is already running. Opening {address}")
-        webbrowser.open(address)
+        open_app_window(address)
         raise SystemExit(0)
-    print(f"\n  SignalTrade is running at {address}\n  Leave this window open. Close it to stop.\n")
+    print(f"\n  SignalTrade is running at {address}\n  Use Quit in the app to stop it.\n")
     if not os.environ.get("NO_BROWSER"):
-        threading.Timer(1.2, lambda: webbrowser.open(address)).start()
+        threading.Timer(1.2, lambda: open_app_window(address)).start()
     create_app(start_scheduler=True).run(host=host, port=port, debug=False)

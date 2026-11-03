@@ -1,0 +1,32 @@
+#!/bin/bash
+# Opens SignalTrade in its own window. The app lives in the folder that holds SignalTrade.app.
+export PATH="/opt/homebrew/bin:/usr/local/bin:/Library/Frameworks/Python.framework/Versions/Current/bin:$PATH"
+APP_DIR="$(cd "$(dirname "$0")/../../.." && pwd)"
+cd "$APP_DIR" || exit 1
+mkdir -p data
+LOG="$APP_DIR/data/signaltrade.log"
+
+alert() {
+  osascript -e "display alert \"SignalTrade\" message \"$1\"" >/dev/null 2>&1
+}
+
+PY=""
+for candidate in python3 /usr/local/bin/python3 /opt/homebrew/bin/python3 /usr/bin/python3; do
+  if command -v "$candidate" >/dev/null 2>&1 && "$candidate" -c "import venv" >/dev/null 2>&1; then
+    PY="$candidate"; break
+  fi
+done
+if [ -z "$PY" ]; then
+  alert "SignalTrade needs Python 3. Your browser will open the download page. Install it, then open SignalTrade again."
+  open "https://www.python.org/downloads/"
+  exit 1
+fi
+
+if [ ! -x .venv/bin/python ]; then
+  osascript -e 'display notification "Setting up for the first time. This takes about a minute." with title "SignalTrade"' >/dev/null 2>&1
+  "$PY" -m venv .venv >>"$LOG" 2>&1 || { alert "Setup failed. Details are in data/signaltrade.log."; exit 1; }
+fi
+.venv/bin/python -m pip install -q --disable-pip-version-check -r requirements.txt >>"$LOG" 2>&1 \
+  || { alert "Setup failed. Check your internet connection and try again."; exit 1; }
+
+exec .venv/bin/python app.py >>"$LOG" 2>&1

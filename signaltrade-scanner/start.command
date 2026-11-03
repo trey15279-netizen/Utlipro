@@ -1,5 +1,5 @@
 #!/bin/bash
-# Double-click to start SignalTrade (Mac). On Linux: ./start.command
+# Starts SignalTrade from a terminal (Mac or Linux). On a Mac, SignalTrade.app is easier.
 cd "$(dirname "$0")" || exit 1
 if ! command -v python3 >/dev/null 2>&1; then
   echo "SignalTrade needs Python 3. Install it from https://www.python.org/downloads/"

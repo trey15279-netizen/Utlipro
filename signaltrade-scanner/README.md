@@ -12,10 +12,22 @@ profitable on paper.
 
 ## Start here
 
-1. **Start it.** Double-click `start.command` on a Mac or `start.bat` on
-   Windows. The first time, it sets itself up, which takes about a minute.
-   You need Python 3 from python.org. Your browser opens SignalTrade. Leave the
-   small window that appears open while you use it.
+1. **Open the app.**
+   - **Mac:** double-click **SignalTrade.app** (drag it to your Dock to keep it
+     handy). The first time, macOS may say it can't check the developer:
+     right-click it, choose **Open**, then **Open** again. You only do this once.
+   - **Windows:** double-click **start.bat** once. It sets itself up and puts a
+     **SignalTrade** icon on your desktop. Use that icon from then on.
+
+   You need Python 3 from python.org. The first start takes about a minute.
+   SignalTrade opens in its own window, with no tabs or address bar. That works
+   best with Chrome, Edge or Brave installed; otherwise it opens in your normal
+   browser. In Chrome or Edge you can also use **Install SignalTrade** in the
+   address bar menu.
+
+   SignalTrade keeps running in the background so it can scan on schedule,
+   even after you close the window. Opening it again brings the window back.
+   To stop it completely, press **Quit** at the bottom of the sidebar.
 2. **Follow "Get set up" on the Home page:**
    - Paste your free eBay keys in Settings and press **Test eBay**.
    - In **Buyer Prices**, get a quote from each buyer's site, type the price,
@@ -44,8 +56,9 @@ change this in Settings). Keys you paste are saved only on your computer, in
 `data/keys.json`. SignalTrade only runs on your own computer: it has no login,
 so don't put it on the internet.
 
-To start it from a terminal instead: `pip install -r requirements.txt`, then
-`python app.py`.
+To start it from a terminal instead: `./start.command`, or
+`pip install -r requirements.txt` then `python app.py`. If something goes wrong
+when starting from the app icon, the details are in `data/signaltrade.log`.
 
 ## How it works
 
