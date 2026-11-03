@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% import "_macros.html" as ui with context %}
+{% block title %}{{ e.phone }}{% endblock %}
+{% block heading %}{{ e.spec.model ~ ' · ' ~ e.spec.storage if e.spec else e.phone }}{% endblock %}
+{% block sub %}<span class="mono">{{ item_id }}</span>{% endblock %}
+{% block actions %}
+  <a class="btn" href="{{ e.url }}" target="_blank" rel="noopener">View original listing ↗</a>
+  {% if stage in ('open', 'dismissed') %}
+  <form method="post" action="{{ url_for('dismiss', item_id=item_id) }}">{{ ui.csrf() }}
+    {% if stage == 'dismissed' %}<input type="hidden" name="undo" value="1"><button class="btn" type="submit">Restore</button>
+    {% else %}<button class="btn" type="submit">Dismiss</button>{% endif %}
+  </form>
+  {% endif %}
+{% endblock %}
+{% block content %}
+{{ ui.steps(stage) }}
+
+<div class="row">
+  <section class="panel" style="flex:1 1 330px" aria-labelledby="deal-h">
+    <div class="panel-head"><h2 id="deal-h" class="lbl">Opportunity</h2>{{ ui.stage_tag(e, stage) }}</div>
+    <div style="display:flex;flex-direction:column;gap:7px">
+      {% if e.spec %}<div class="inline" style="gap:6px"><span class="tag outline">{{ e.spec.carrier }}</span><span class="tag outline">Buyer grade: {{ e.spec.condition }}</span>{% if e.ebay_condition %}<span class="tag outline">eBay: {{ e.ebay_condition }}</span>{% endif %}</div>{% endif %}
+      <div class="small muted">{{ e.title }}</div>
+      <div class="small dim">Seller <span class="muted">{{ e.seller or '—' }}</span> · Surfaced {{ e.surfaced_at[:16].replace('T', ' ') }} UTC</div>
+    </div>
+    {% if e.breakdown %}{{ ui.breakdown(e, settings) }}
+    {% else %}<div class="lines num"><div><span>Est. net profit</span><span>{{ e.estimated_profit|money }}</span></div><div><span>Buyer</span><span>{{ e.buyer }}</span></div></div>{% endif %}
+  </section>
+
+  <section class="panel" style="flex:1.4 1 420px" aria-labelledby="buyers-h">
+    <div class="panel-head"><h2 id="buyers-h" class="lbl">Verified buyer comparison</h2><span class="small dim">Current quotes · expire after {{ settings.quote_max_age_days }} days</span></div>
+    {% if comparison %}
+      <div class="inline small" style="background:var(--panel2);border:1px solid var(--line);border-radius:5px;padding:7px 10px"><span class="dim">Required quote spec</span><span style="font-weight:500">{{ ui.spec_text(e.spec) }}</span></div>
+      {{ ui.comparison(comparison, e.spec) }}
+      <div class="notice">Re-check the best buyer's quote on their site right before you buy. Update it in <a href="{{ url_for('settings_page') }}">Settings</a> if it changed.</div>
+    {% else %}
+      <div class="empty">This phone is no longer in your settings, so current quotes can't be compared.</div>
+    {% endif %}
+  </section>
+</div>
+
+<div class="row">
+  {% if stage in ('open', 'dismissed') %}
+  <section class="panel" style="flex:1 1 320px" aria-labelledby="verify-h">
+    {% set done = e.checklist.values()|select|list|length if e.checklist else 0 %}
+    <div class="panel-head"><h2 id="verify-h" class="lbl">Pre-purchase verification</h2><span class="small num {{ 'green' if complete else 'amber' }}">{{ done }} of {{ CHECKLIST|length }}</span></div>
+    <form method="post" action="{{ url_for('checklist', item_id=item_id) }}">
+      {{ ui.csrf() }}
+      {% for key, label, detail in CHECKLIST %}
+      <label class="chk"><input type="checkbox" name="check" value="{{ key }}" {{ 'checked' if e.checklist and e.checklist.get(key) }}><span><b>{{ label }}</b><small>{{ detail }}</small></span></label>
+      {% endfor %}
+      <div style="padding-top:10px"><button class="btn" type="submit">Save checklist</button></div>
+    </form>
+  </section>
+
+  <section class="panel" id="purchase" style="flex:1.2 1 380px" aria-labelledby="buy-h">
+    <div class="panel-head"><h2 id="buy-h" class="lbl">Record manual purchase</h2>{% if not complete %}<span class="tag amber">Checklist incomplete</span>{% endif %}</div>
+    <p class="small muted" style="margin:0">Buy the phone yourself on eBay, then record what you actually paid. SignalTrade never purchases automatically.</p>
+    <form method="post" action="{{ url_for('bought', item_id=item_id) }}" style="display:flex;flex-direction:column;gap:12px">
+      {{ ui.csrf() }}
+      <fieldset {{ 'disabled' if not complete }} style="border:0;padding:0;margin:0;display:flex;flex-direction:column;gap:12px">
+        <div class="fields">
+          <label class="field"><span>Price paid</span><input type="number" step="0.01" min="0" name="price" required value="{{ '%.2f' % e.breakdown.price if e.breakdown }}"></label>
+          <label class="field"><span>Shipping to you</span><input type="number" step="0.01" min="0" name="shipping" required value="{{ '%.2f' % e.breakdown.inbound_shipping if e.breakdown and e.shipping_known != false }}"></label>
+          <label class="field"><span>Sales tax charged</span><input type="number" step="0.01" min="0" name="tax" required placeholder="From your receipt"></label>
+          <label class="field"><span>Purchase date</span><input type="date" name="date" value="{{ today }}"></label>
+          <label class="field"><span>IMEI check result</span><select name="imei_result">{% for r in IMEI_RESULTS %}<option value="{{ r }}">{{ r }}</option>{% endfor %}</select></label>
+          <label class="field"><span>IMEI last 4 digits</span><input type="text" name="imei_last4" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="Never the full IMEI"></label>
+        </div>
+        <div><button class="btn primary" type="submit">Record purchase</button></div>
+      </fieldset>
+      {% if not complete %}<div class="notice amber">Complete and save every pre-purchase check to record a purchase.</div>{% endif %}
+    </form>
+  </section>
+  {% endif %}
+
+  {% if stage == 'purchased' %}
+  <section class="panel" style="flex:1 1 380px" aria-labelledby="insp-h">
+    <div class="panel-head"><h2 id="insp-h" class="lbl">Your inspection</h2></div>
+    <p class="small muted" style="margin:0">When the phone arrives, inspect it yourself before sending it on. This is separate from what the buyer pays.</p>
+    <form method="post" action="{{ url_for('inspected', item_id=item_id) }}" style="display:flex;flex-direction:column;gap:12px">
+      {{ ui.csrf() }}
+      <div class="fields">
+        <label class="field"><span>Result</span><select name="result"><option value="pass">Passed</option><option value="fail">Failed</option></select></label>
+        <label class="field"><span>Date</span><input type="date" name="date" value="{{ today }}"></label>
+      </div>
+      <label class="field"><span>Notes</span><input type="text" name="notes" placeholder="Screen, battery health, Face ID, cosmetic marks"></label>
+      <div><button class="btn primary" type="submit">Record inspection</button></div>
+    </form>
+  </section>
+  {% endif %}
+
+  {% if stage == 'inspected' %}
+  <section class="panel" style="flex:1 1 380px" aria-labelledby="send-h">
+    <div class="panel-head"><h2 id="send-h" class="lbl">Send to buyer</h2></div>
+    {% if not e.inspection.passed %}<div class="notice amber">This phone failed your inspection. Send it only if the buyer will still pay for it at a lower grade, and enter that payout.</div>{% endif %}
+    <form method="post" action="{{ url_for('sent', item_id=item_id) }}" style="display:flex;flex-direction:column;gap:12px">
+      {{ ui.csrf() }}
+      <div class="fields">
+        <label class="field"><span>Buyer</span><input type="text" name="buyer" value="{{ e.buyer }}"></label>
+        <label class="field"><span>Expected payout</span><input type="number" step="0.01" min="0" name="expected_payout" placeholder="{{ '%.2f' % e.expected_payout }} (alert's buyer)"></label>
+        <label class="field"><span>Shipping to buyer</span><input type="number" step="0.01" min="0" name="shipping" value="0"></label>
+        <label class="field"><span>Other selling costs</span><input type="number" step="0.01" min="0" name="other_costs" value="0"></label>
+        <label class="field"><span>Date sent</span><input type="date" name="date" value="{{ today }}"></label>
+      </div>
+      <div class="small dim">Expected payout: leave blank to use {{ e.expected_payout|money }} from {{ e.buyer }}'s quote. Required for any other buyer. Don't include payout fees in other costs; they come off what you receive.</div>
+      <div><button class="btn primary" type="submit">Mark as sent</button></div>
+    </form>
+  </section>
+  {% endif %}
+
+  {% if stage == 'sent' %}
+  <section class="panel" style="flex:1 1 380px" aria-labelledby="paid-h">
+    <div class="panel-head"><h2 id="paid-h" class="lbl">Record payout</h2></div>
+    <p class="small muted" style="margin:0">Enter the money that actually reached you, after any payout fee. Expected: {{ e.sent.expected_payout|money }} from {{ e.sent.buyer }}.</p>
+    <form method="post" action="{{ url_for('paid', item_id=item_id) }}" style="display:flex;flex-direction:column;gap:12px">
+      {{ ui.csrf() }}
+      <div class="fields">
+        <label class="field"><span>Amount received</span><input type="number" step="0.01" min="0" name="received" required></label>
+        <label class="field"><span>Date paid</span><input type="date" name="date" value="{{ today }}"></label>
+      </div>
+      <div><button class="btn primary" type="submit">Record payout</button></div>
+    </form>
+  </section>
+  {% endif %}
+
+  <section class="panel" style="flex:1 1 340px" aria-labelledby="rec-h">
+    <div class="panel-head"><h2 id="rec-h" class="lbl">Purchase decision record</h2></div>
+    {% set p = e.purchase or {} %}{% set s = e.sent or {} %}{% set pay = e.payout or {} %}
+    <div class="lines num">
+      <div><span>Listing</span><a href="{{ e.url }}" target="_blank" rel="noopener" class="small" style="max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ e.url }}</a></div>
+      <div><span>Seller</span><span>{{ e.seller or '—' }}</span></div>
+      <div><span>Purchased</span><span>{{ p.date or '—' }}</span></div>
+      <div><span>Acquisition cost</span><span>{{ p.acquisition_cost|money }}</span></div>
+      <div><span>IMEI check</span><span>{% if p.imei_result %}{{ p.imei_result }}{% if p.imei_last4 %} (ends {{ p.imei_last4 }}){% endif %}{% else %}—{% endif %}</span></div>
+      <div><span>Inspection</span><span>{% if e.inspection %}{{ 'Passed' if e.inspection.passed else 'Failed' }}{% if e.inspection.notes %} · {{ e.inspection.notes }}{% endif %}{% else %}—{% endif %}</span></div>
+      <div><span>Sent to</span><span>{{ s.buyer or '—' }}{% if s.date %} · {{ s.date }}{% endif %}</span></div>
+      <div><span>Selling costs</span><span>{{ (s.shipping_to_buyer + s.other_selling_costs)|money if s else '—' }}</span></div>
+      <div><span>Expected payout</span><span>{{ (s.expected_payout if s else e.expected_payout)|money }}</span></div>
+      <div><span>Actual payout</span><span>{{ pay.received|money }}{% if reduced %} <span class="tag amber">Reduced</span>{% endif %}</span></div>
+      <div><span>Paid</span><span>{{ pay.date or '—' }}</span></div>
+      <div class="total"><span>Estimated profit</span><span>{{ e.estimated_profit|money }}</span></div>
+      <div><span style="color:var(--text2);font-weight:500">Actual profit</span><span class="{{ 'green' if actual and actual >= 0 else ('red' if actual is not none else '') }}" style="font-weight:600">{{ actual|money }}</span></div>
+    </div>
+  </section>
+</div>
+{% endblock %}

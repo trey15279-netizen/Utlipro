@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% import "_macros.html" as ui with context %}
+{% block title %}Scan Marketplace{% endblock %}
+{% block heading %}Scan Marketplace{% endblock %}
+{% block sub %}eBay Buy It Now · bar {{ bar|money }}{% endblock %}
+{% block actions %}
+<form method="post" action="{{ url_for('scan_page') }}" class="inline">
+  {{ ui.csrf() }}
+  <label class="inline small muted"><input type="checkbox" name="alerts" checked> Send alerts for new deals</label>
+  <button class="btn primary" type="submit">Run scan now</button>
+</form>
+{% endblock %}
+{% block content %}
+{% set last = status.last_scan %}
+<section class="panel" aria-labelledby="last-h">
+  <div class="panel-head"><h2 id="last-h" class="lbl">Last scan</h2>
+    {% if last %}<span class="mono small dim">{{ status.last_at.strftime('%b %-d %H:%M') }}</span>{% endif %}</div>
+  {% if not last %}
+    <div class="empty">No scan has run yet.{% if not status.ebay_keys %}<span class="small amber">Set EBAY_APP_ID and EBAY_CERT_ID (or EBAY_ACCESS_TOKEN), then restart the app.</span>{% endif %}</div>
+  {% elif not last.ok %}
+    <div class="flash error">Scan failed: {{ last.error }}</div>
+  {% else %}
+    <div class="inline small num" style="gap:18px"><span>Listings clearing the bar <b>{{ last.found }}</b></span><span>New <b>{{ last.new }}</b></span>
+      <span class="muted">Alerts: {{ last.alerted_by|join(', ') if last.alerted_by else 'none sent' }}</span></div>
+    {% if last.warnings %}
+    <ul class="small amber" style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:3px">
+      {% for w in last.warnings %}<li>{{ w }}</li>{% endfor %}
+    </ul>
+    {% endif %}
+  {% endif %}
+  {% if found %}
+  <div class="tablebox">
+    <table>
+      <thead><tr><th scope="col">Listing</th><th scope="col">Phone</th><th scope="col" class="r">Price</th><th scope="col">Best exit</th><th scope="col" class="r">Est. net</th><th scope="col">Stage</th></tr></thead>
+      <tbody>
+      {% for item_id, e in found %}
+      <tr>
+        <td class="wrap"><a href="{{ url_for('item', item_id=item_id) }}">{{ e.title }}</a></td>
+        <td>{{ e.phone }}</td>
+        <td class="r">{{ e.breakdown.price|money if e.breakdown else '—' }}</td>
+        <td>{{ e.buyer }}</td>
+        <td class="r green">{{ e.estimated_profit|money }}</td>
+        <td>{% set st = e.payout and 'paid' or (e.sent and 'sent') or (e.inspection and 'inspected') or (e.purchase and 'purchased') or (e.dismissed and 'dismissed') or 'open' %}{{ ui.stage_tag(e, st) }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</section>
+
+<section class="panel" aria-labelledby="ready-h">
+  <div class="panel-head"><h2 id="ready-h" class="lbl">What gets scanned</h2><a class="small" href="{{ url_for('settings_page') }}">Edit phones and quotes</a></div>
+  <p class="small muted" style="margin:0">A phone is scanned only if at least one buyer quote is entered, matches its exact spec, and is under {{ settings.quote_max_age_days }} days old.</p>
+  {% for p in phones %}
+  {% set usable = p.rows|selectattr('status', 'in', ['ok', 'best', 'below'])|list %}
+  <div style="border-top:1px solid var(--line2);padding-top:10px;display:flex;flex-direction:column;gap:8px">
+    <div class="inline" style="justify-content:space-between">
+      <b>{{ p.phone.name }}</b>
+      {% if usable %}<span class="tag green">Will scan · {{ usable|length }} quote{{ 's' if usable|length != 1 }}</span>{% else %}<span class="tag amber">Not scanned · no verified quote</span>{% endif %}
+    </div>
+    {{ ui.comparison(p.rows, p.phone, show_net=False) }}
+  </div>
+  {% else %}
+  <div class="empty">No phones set up. <a href="{{ url_for('settings_page') }}">Add one in Settings</a></div>
+  {% endfor %}
+</section>
+{% endblock %}

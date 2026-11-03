@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% import "_macros.html" as ui with context %}
+{% block title %}Inventory{% endblock %}
+{% block heading %}Inventory{% endblock %}
+{% block sub %}Bought, not yet paid{% endblock %}
+{% block content %}
+<section class="panel">
+  {% if rows %}
+  <div class="tablebox">
+    <table>
+      <thead><tr><th scope="col">Device</th><th scope="col">Bought</th><th scope="col" class="r">Acq. cost</th><th scope="col">IMEI</th><th scope="col">Inspection</th><th scope="col">Buyer</th><th scope="col">Status</th><th scope="col">Next step</th></tr></thead>
+      <tbody>
+      {% for item_id, e in rows %}
+      {% set st = e.sent and 'sent' or (e.inspection and 'inspected') or 'purchased' %}
+      <tr>
+        <td><a href="{{ url_for('item', item_id=item_id) }}" style="color:#F2F4F6">{{ e.phone }}</a></td>
+        <td>{{ e.purchase.date|short }}</td>
+        <td class="r">{{ e.purchase.acquisition_cost|money }}</td>
+        <td class="mono small">{{ e.purchase.imei_result }}{% if e.purchase.imei_last4 %} ··{{ e.purchase.imei_last4 }}{% endif %}</td>
+        <td>{% if e.inspection %}{% if e.inspection.passed %}<span class="green">Passed</span>{% else %}<span class="red">Failed</span>{% endif %}{% if e.inspection.notes %} <span class="dim">· {{ e.inspection.notes }}</span>{% endif %}{% else %}<span class="amber">Pending</span>{% endif %}</td>
+        <td>{{ e.sent.buyer if e.sent else e.buyer }}</td>
+        <td>{{ ui.stage_tag(e, st) }}</td>
+        <td><a class="btn sm" href="{{ url_for('item', item_id=item_id) }}">{{ {'purchased':'Record inspection','inspected':'Mark as sent','sent':'Record payout'}[st] }}</a></td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty">No phones in inventory.<span class="small">Record a purchase from an opportunity to start tracking it.</span></div>
+  {% endif %}
+</section>
+{% endblock %}

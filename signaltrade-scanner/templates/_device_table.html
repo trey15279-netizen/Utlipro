@@ -1,0 +1,29 @@
+{# expects `inventory`: list of (item_id, entry) that have a purchase #}
+<div class="tablebox">
+<table>
+  <thead><tr><th scope="col">Device</th><th scope="col">Bought</th><th scope="col" class="r">Acq. cost</th>{% if not compact %}<th scope="col">IMEI</th>{% endif %}<th scope="col">Inspection</th><th scope="col">Buyer</th><th scope="col">Payout</th>{% if not compact %}<th scope="col" class="r">Est.</th>{% endif %}<th scope="col" class="r">{{ 'Actual' if compact else 'Actual profit' }}</th></tr></thead>
+  <tbody>
+  {% for item_id, e in inventory %}
+  {% set p = e.purchase %}
+  <tr>
+    <td><a href="{{ url_for('item', item_id=item_id) }}" style="color:#F2F4F6" title="{{ e.phone }}">{% if e.spec %}{{ e.spec.model }} · {{ e.spec.storage }}{% else %}{{ e.phone }}{% endif %}</a></td>
+    <td>{{ p.date|short }}</td>
+    <td class="r">{{ p.acquisition_cost|money }}</td>
+    {% if not compact %}<td class="mono small" title="IMEI check: {{ p.imei_result }}">{% if p.imei_result == 'clean' %}<span class="green">✓</span>{% elif p.imei_result == 'flagged' %}<span class="red">!</span>{% else %}<span class="amber">?</span>{% endif %}{% if p.imei_last4 %} ··{{ p.imei_last4 }}{% endif %}</td>{% endif %}
+    <td>{% if e.inspection %}{% if e.inspection.passed %}<span class="green">Passed</span>{% else %}<span class="red">Failed</span>{% endif %}{% else %}<span class="amber">Pending</span>{% endif %}</td>
+    <td>{% if e.sent %}{{ e.sent.buyer }}{% else %}<span class="dim">Not sent</span>{% endif %}</td>
+    <td>{% if e.payout %}{{ e.payout.received|money }}
+          {% if e.payout.received < e.sent.expected_payout %}<span class="tag amber" title="Expected {{ e.sent.expected_payout|money }}">{{ (e.payout.received - e.sent.expected_payout)|money }}</span>{% else %}<span class="tag">Full</span>{% endif %}
+        {% elif e.sent %}<span class="muted" title="Expected {{ e.sent.expected_payout|money }}">Awaiting</span>
+        {% else %}<span class="muted">In hand</span>{% endif %}</td>
+    {% if not compact %}<td class="r dim">{{ e.estimated_profit|money }}</td>{% endif %}
+    {% if e.payout %}
+      {% set a = e.payout.received - p.acquisition_cost - e.sent.shipping_to_buyer - e.sent.other_selling_costs %}
+      <td class="r {{ 'green' if a >= 0 else 'red' }}" style="font-weight:600">{{ a|money }}</td>
+    {% else %}<td class="r dim">—</td>{% endif %}
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+<div class="small dim">Actual profit = payout received − acquisition cost (price + shipping + tax) − selling costs. Each cost counted once. Only the last 4 IMEI digits are stored.</div>

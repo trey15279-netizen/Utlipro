@@ -22,6 +22,17 @@ from datetime import date, datetime, timedelta, timezone
 
 IMEI_RESULTS = ("clean", "flagged", "not-checked")
 
+# Every box must be ticked before the dashboard lets you record a purchase
+CHECKLIST = (
+    ("imei", "IMEI verified", "Not blacklisted, financed or reported lost"),
+    ("lock", "Activation Lock disabled", "Find My is off, confirmed by the seller"),
+    ("carrier", "Carrier unlock confirmed", "IMEI check shows the phone unlocked"),
+    ("owner", "Ownership verified", "The seller owns the phone outright"),
+    ("condition", "Physical condition inspected", "Photos match the grade the quote assumes"),
+    ("quote", "Buyer quote rechecked", "Same payout today, for this exact spec"),
+    ("checkout", "Final checkout cost confirmed", "Price, shipping and the tax eBay charges"),
+)
+
 
 class TrackingError(Exception):
     pass
@@ -82,7 +93,48 @@ def record_alerted(deals, state, now=None):
             # What should reach you from this buyer if the phone grades as quoted
             "expected_payout": round(best["payout"] - best["payout_fee"], 2),
             "estimated_profit": best["net_profit"],
+            "spec": deal.get("spec"),
+            "ebay_condition": deal.get("ebay_condition"),
+            "shipping_known": deal.get("shipping_known"),
+            "breakdown": best,
+            "other_exits": deal.get("other_exits", []),
+            "checklist": {},
         }
+
+
+def record_checklist(state, item_id, ticked):
+    """ticked: the ids of the boxes that are checked."""
+    entry = _entry(state, item_id)
+    if "purchase" in entry:
+        raise TrackingError(f"{item_id} is already purchased.")
+    valid = {key for key, _, _ in CHECKLIST}
+    entry["checklist"] = {key: key in ticked for key in valid}
+
+
+def checklist_complete(entry):
+    done = entry.get("checklist", {})
+    return all(done.get(key) for key, _, _ in CHECKLIST)
+
+
+def dismiss(state, item_id, dismissed=True):
+    entry = _entry(state, item_id)
+    if "purchase" in entry:
+        raise TrackingError(f"{item_id} is already purchased.")
+    entry["dismissed"] = bool(dismissed)
+
+
+def stage(entry):
+    if "payout" in entry:
+        return "paid"
+    if "sent" in entry:
+        return "sent"
+    if "inspection" in entry:
+        return "inspected"
+    if "purchase" in entry:
+        return "purchased"
+    if entry.get("dismissed"):
+        return "dismissed"
+    return "open"
 
 
 def record_purchase(state, item_id, price, shipping, tax,
@@ -243,3 +295,68 @@ def report(state, weekly_target, now=None):
     if len(sent) - len(paid):
         lines.append(f"  Waiting on payout:    {len(sent) - len(paid)}")
     return "\n".join(lines)
+
+
+# ---------- Dashboard figures ----------
+
+def _week_start(day):
+    return day - timedelta(days=day.weekday())
+
+
+def metrics(state, weekly_target, now=None, weeks=6):
+    """Everything the overview shows, computed only from recorded data."""
+    now = now or datetime.now(timezone.utc)
+    entries = list(state["alerted"].values())
+    since = now - timedelta(days=7)
+
+    purchased = [e for e in entries if "purchase" in e]
+    inspected = [e for e in purchased if "inspection" in e]
+    passed = [e for e in inspected if e["inspection"]["passed"]]
+    sent = [e for e in purchased if "sent" in e]
+    paid = [e for e in sent if "payout" in e]
+    reduced = [e for e in paid if payout_reduced(e)]
+    unpaid = [e for e in purchased if "payout" not in e]
+
+    actual = round(sum(actual_profit(e) for e in paid), 2)
+    estimated = round(sum(e["estimated_profit"] for e in paid), 2)
+
+    # Weekly series, oldest first
+    this_week = _week_start(now.date())
+    starts = [this_week - timedelta(weeks=i) for i in range(weeks - 1, -1, -1)]
+    opportunities = []
+    realized_cum, estimated_cum = [], []
+    for start in starts:
+        end = start + timedelta(days=7)
+        opportunities.append(sum(
+            1 for e in entries
+            if start <= datetime.fromisoformat(e["surfaced_at"]).date() < end
+        ))
+        upto = [e for e in paid if date.fromisoformat(e["payout"]["date"]) < end]
+        realized_cum.append(round(sum(actual_profit(e) for e in upto), 2))
+        estimated_cum.append(round(sum(e["estimated_profit"] for e in upto), 2))
+
+    return {
+        "opportunities_7d": sum(
+            1 for e in entries if datetime.fromisoformat(e["surfaced_at"]) >= since),
+        "weekly_target": weekly_target,
+        "surfaced": len(entries),
+        "purchased": len(purchased),
+        "inspected": len(inspected),
+        "passed": len(passed),
+        "failed": len(inspected) - len(passed),
+        "pass_rate": round(100 * len(passed) / len(inspected)) if inspected else None,
+        "sent": len(sent),
+        "paid": len(paid),
+        "paid_full": len(paid) - len(reduced),
+        "paid_reduced": len(reduced),
+        "actual_profit": actual,
+        "estimated_for_paid": estimated,
+        "avg_actual": round(actual / len(paid), 2) if paid else None,
+        "avg_estimated": round(estimated / len(paid), 2) if paid else None,
+        "capital_deployed": round(sum(e["purchase"]["acquisition_cost"] for e in purchased), 2),
+        "capital_outstanding": round(sum(e["purchase"]["acquisition_cost"] for e in unpaid), 2),
+        "weeks": [f"{s:%b} {s.day}" for s in starts],
+        "weekly_opportunities": opportunities,
+        "realized_cumulative": realized_cum,
+        "estimated_cumulative": estimated_cum,
+    }

@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% import "_macros.html" as ui with context %}
+{% block title %}Overview{% endblock %}
+{% block heading %}Overview{% endblock %}
+{% block sub %}{{ status.last_at.strftime('%a, %b %-d') if status.last_at else '' }} · Last 7 days{% endblock %}
+{% block content %}
+
+{% if not has_data %}
+<div class="panel">
+  <div class="lbl">Get started</div>
+  <ol class="muted" style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px">
+    <li>Set <span class="mono">EBAY_APP_ID</span> and <span class="mono">EBAY_CERT_ID</span> before starting the app{% if status.ebay_keys %} <span class="green">· done</span>{% endif %}.</li>
+    <li>Enter dated buyer quotes for the exact phone spec in <a href="{{ url_for('settings_page') }}">Settings</a>.</li>
+    <li>Run a scan. Opportunities that clear your bar appear here.</li>
+  </ol>
+</div>
+{% endif %}
+
+<section class="row" aria-label="Key figures">
+  <div class="panel kpi">
+    <div class="panel-head"><span class="lbl">Opportunities found</span><span class="tag">7 days</span></div>
+    <div class="line"><span class="big num">{{ m.opportunities_7d }}</span>
+      <span class="small num {{ 'green' if m.opportunities_7d >= m.weekly_target else 'muted' }}">Target {{ m.weekly_target }} / week{{ ' · met' if m.opportunities_7d >= m.weekly_target }}</span></div>
+    <div class="small dim">Verified exit, clears {{ (settings.minimum_net_profit + settings.profit_buffer)|money }} bar</div>
+  </div>
+  <div class="panel kpi">
+    <div class="panel-head"><span class="lbl">Phones purchased</span><span class="tag">All time</span></div>
+    <div class="line"><span class="big num">{{ m.purchased }}</span><span class="small muted num">of {{ m.surfaced }} surfaced</span></div>
+    <div class="small dim">Each approved and bought by you</div>
+  </div>
+  <div class="panel kpi">
+    <div class="panel-head"><span class="lbl">Inspection pass rate</span><span class="tag">All time</span></div>
+    <div class="line"><span class="big num">{{ m.pass_rate ~ '%' if m.pass_rate is not none else '—' }}</span><span class="small muted num">{{ m.passed }} passed · {{ m.failed }} failed</span></div>
+    <div class="small dim">Your inspection, separate from payout</div>
+  </div>
+  <div class="panel kpi">
+    <div class="panel-head"><span class="lbl">Actual net profit</span><span class="tag green">Realized</span></div>
+    <div class="line"><span class="big num">{{ m.actual_profit|money }}</span><span class="small muted num">{{ m.paid }} paid device{{ 's' if m.paid != 1 }}</span></div>
+    <div class="small dim num">{% if m.paid %}vs {{ m.estimated_for_paid|money }} estimated for the same {{ m.paid }}{% else %}No payouts recorded yet{% endif %}</div>
+  </div>
+</section>
+
+<div class="row">
+  <section class="panel" style="flex:1 1 330px" aria-labelledby="deal-h">
+    <div class="panel-head"><h2 id="deal-h" class="lbl">Featured opportunity</h2>
+      {% if featured %}<span class="mono small dim">Surfaced {{ featured[1].surfaced_at[:16].replace('T', ' ') }} UTC</span>{% endif %}</div>
+    {% if featured %}
+      {% set item_id, e = featured %}
+      <div style="display:flex;flex-direction:column;gap:7px">
+        <div style="font-size:17px;font-weight:600">{% if e.spec %}{{ e.spec.model }} · {{ e.spec.storage }}{% else %}{{ e.phone }}{% endif %}</div>
+        {% if e.spec %}<div class="inline" style="gap:6px"><span class="tag outline">{{ e.spec.carrier }}</span><span class="tag outline">Buyer grade: {{ e.spec.condition }}</span>{% if e.ebay_condition %}<span class="tag outline">eBay: {{ e.ebay_condition }}</span>{% endif %}</div>{% endif %}
+        <div class="small dim" title="{{ e.title }}" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ e.title }}</div>
+        <div class="small dim">Seller <span class="muted">{{ e.seller or '—' }}</span></div>
+      </div>
+      {% if e.breakdown %}{{ ui.breakdown(e, settings) }}{% endif %}
+      <div class="inline" style="margin-top:auto">
+        <a class="btn primary" href="{{ url_for('item', item_id=item_id) }}">Review &amp; verify</a>
+        <a class="btn" href="{{ e.url }}" target="_blank" rel="noopener">View original listing ↗</a>
+      </div>
+    {% else %}
+      <div class="empty">No open opportunities.<span class="small">Run a scan, or check that your buyer quotes are current.</span></div>
+    {% endif %}
+  </section>
+
+  <section class="panel" style="flex:1.4 1 420px" aria-labelledby="buyers-h">
+    <div class="panel-head"><h2 id="buyers-h" class="lbl">Verified buyer comparison</h2><span class="small dim">Quotes expire after {{ settings.quote_max_age_days }} days</span></div>
+    {% if featured and comparison %}
+      <div class="inline small" style="background:var(--panel2);border:1px solid var(--line);border-radius:5px;padding:7px 10px">
+        <span class="dim">Required quote spec</span><span style="font-weight:500">{{ ui.spec_text(featured[1].spec) }}</span></div>
+      {{ ui.comparison(comparison, featured[1].spec, compact=True) }}
+      <div class="notice" style="margin-top:auto;border-top:1px solid var(--line2);padding-top:10px">Net is recalculated against your current quotes at this listing's price. An expired or mismatched quote is never used.</div>
+    {% else %}
+      <div class="empty">Comparison appears with the featured opportunity.<a href="{{ url_for('settings_page') }}" class="small">Manage buyer quotes</a></div>
+    {% endif %}
+  </section>
+
+  <section class="panel" style="flex:.9 1 280px" aria-labelledby="verify-h">
+    <div class="panel-head"><h2 id="verify-h" class="lbl">Pre-purchase verification</h2>
+      {% if featured %}{% set done = featured[1].checklist.values()|select|list|length if featured[1].checklist else 0 %}<span class="small num {{ 'green' if done == CHECKLIST|length else 'amber' }}">{{ done }} of {{ CHECKLIST|length }}</span>{% endif %}</div>
+    {% if featured %}
+    <form method="post" action="{{ url_for('checklist', item_id=featured[0]) }}" style="display:flex;flex-direction:column;flex:1">
+      {{ ui.csrf() }}
+      {% for key, label, detail in CHECKLIST %}
+      <label class="chk"><input type="checkbox" name="check" value="{{ key }}" {{ 'checked' if featured[1].checklist and featured[1].checklist.get(key) }}><span><b>{{ label }}</b><small>{{ detail }}</small></span></label>
+      {% endfor %}
+      <div style="margin-top:auto;padding-top:10px;display:flex;flex-direction:column;gap:8px">
+        <button class="btn" type="submit">Save checklist</button>
+        <a class="btn primary" href="{{ url_for('item', item_id=featured[0]) }}#purchase">Record manual purchase</a>
+        <span class="small dim" style="text-align:center">SignalTrade never purchases automatically.</span>
+      </div>
+    </form>
+    {% else %}
+      <div class="empty">Nothing to verify yet.</div>
+    {% endif %}
+  </section>
+</div>
+
+<div class="row">
+  <section class="panel" style="flex:1.7 1 560px" aria-labelledby="inv-h">
+    <div class="panel-head"><h2 id="inv-h" class="lbl">Inventory &amp; transactions</h2>
+      <div class="inline small dim num" style="gap:14px"><span>Purchased <span style="color:var(--text)">{{ m.purchased }}</span></span><span>Sent <span style="color:var(--text)">{{ m.sent }}</span></span><span>Paid <span style="color:var(--text)">{{ m.paid }}</span> (full {{ m.paid_full }}, reduced {{ m.paid_reduced }})</span></div></div>
+    {% if inventory %}
+    {% with compact = true %}{% include "_device_table.html" %}{% endwith %}
+    {% else %}
+      <div class="empty">No purchases recorded yet.<span class="small">Purchases appear here once you record them from an opportunity.</span></div>
+    {% endif %}
+  </section>
+
+  <section class="panel" style="flex:1 1 340px" aria-labelledby="perf-h">
+    <div class="panel-head"><h2 id="perf-h" class="lbl">Performance</h2><span class="small dim">6 weeks · cumulative</span></div>
+    {{ ui.profit_chart(chart, m) }}
+    <div class="stats num">
+      <div><span class="lbl" style="font-size:10px">Avg actual / phone</span><span class="v">{{ m.avg_actual|money }}</span><span class="small dim">{% if m.paid %}Est. {{ m.avg_estimated|money }} · {{ m.paid }} paid{% else %}No payouts yet{% endif %}</span></div>
+      <div><span class="lbl" style="font-size:10px">Capital deployed</span><span class="v">{{ m.capital_deployed|money }}</span><span class="small dim">{{ m.purchased }} device{{ 's' if m.purchased != 1 }} · {{ m.capital_outstanding|money }} out</span></div>
+      <div style="grid-column:span 2">{{ ui.opp_bars(chart, m) }}</div>
+    </div>
+  </section>
+</div>
+{% endblock %}

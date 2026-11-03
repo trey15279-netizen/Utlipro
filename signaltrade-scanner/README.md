@@ -10,6 +10,44 @@ quotes, and work 10–20 listings through by hand. The goal is to prove phones
 can be bought, verified and resold profitably, not just that listings look
 profitable on paper.
 
+## Dashboard
+
+```sh
+pip install -r requirements.txt
+export EBAY_APP_ID=... EBAY_CERT_ID=...   # plus alert keys if you want them
+python app.py                             # open http://127.0.0.1:8000
+```
+
+The dashboard is the same scanner, with everything done from the browser:
+
+- **Overview:** this week's opportunities against your target, purchases,
+  inspection pass rate, and realized profit next to the estimate. Also the best
+  open deal, a comparison of all four buyers for it, and the checklist.
+- **Scan Marketplace:** run a scan, see what it found and any warnings, and
+  see which phones will be scanned and which are blocked by a missing or
+  expired quote.
+- **Opportunities:** every listing that cleared your bar. Open one to see the
+  cost breakdown, compare buyers on today's quotes, tick the pre-purchase
+  checklist and record the purchase you made yourself on eBay. Recording a
+  purchase is blocked until all seven checks are saved.
+- **Inventory:** phones bought but not yet paid, each with its next step:
+  record inspection, mark as sent, record payout.
+- **Transactions:** every purchase with estimated and actual profit.
+- **Performance Reports:** the funnel, profit trend, average profit per
+  phone, capital deployed and weekly opportunity counts.
+- **Settings:** enter and re-verify buyer quotes, add phones, and change the
+  profit rules and scan schedule.
+
+While the app is running it also scans automatically at the hours set in
+Settings (8:00, 13:00 and 19:00 by default, local time). The sidebar shows
+the last and next scan, whether eBay keys and alerts are set up, and how many
+quotes need re-verifying.
+
+Every number on the dashboard comes from `config.json` and
+`data/alerted.json`, which the command line uses too, so you can mix both.
+It listens on 127.0.0.1 only. Keep it that way, or put it behind a login
+before exposing it to a network: it has no user accounts.
+
 ## How it works
 
 1. Each phone in `config.json` has an exact spec: `model`, `storage`,
@@ -166,5 +204,5 @@ holds every purchase decision record.
 ## Test
 
 ```sh
-python -m unittest test_scanner.py
+python -m unittest test_scanner.py test_app.py
 ```

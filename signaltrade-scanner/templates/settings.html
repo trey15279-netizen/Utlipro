@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% import "_macros.html" as ui with context %}
+{% block title %}Settings{% endblock %}
+{% block heading %}Settings{% endblock %}
+{% block sub %}Buyer quotes, phones and profit rules{% endblock %}
+{% block content %}
+{% set conditions = [('2010','Excellent - Refurbished'),('2020','Very Good - Refurbished'),('2030','Good - Refurbished'),('3000','Used')] %}
+
+{% for p in phones %}
+{% set phone = p.phone %}
+<section class="panel" aria-labelledby="ph-{{ p.index }}">
+  <div class="panel-head">
+    <h2 id="ph-{{ p.index }}" style="font-size:14px;font-weight:600">{{ phone.name }}</h2>
+    <span class="small dim">Quotes must be for exactly: <span style="color:var(--text)">{{ ui.spec_text(phone) }}</span></span>
+  </div>
+  <div class="tablebox">
+    <table>
+      <thead><tr><th scope="col">Buyer</th><th scope="col">Status</th><th scope="col">Payout</th><th scope="col">Ship out</th><th scope="col">Fee</th><th scope="col">Grading</th><th scope="col">Quoted on</th><th scope="col">Link</th><th scope="col">Exact spec</th><th scope="col"></th></tr></thead>
+      <tbody>
+      {% for r in p.rows %}
+      {% set q = r.quote %}
+      {% set qi = phone.buyer_quotes.index(q) %}
+      {% set fid = 'q-' ~ p.index ~ '-' ~ qi %}
+      <tr>
+        <td style="font-weight:500">{{ q.buyer }}</td>
+        <td>{% if r.status == 'missing' %}<span class="tag">No quote</span>{% elif r.status == 'expired' %}<span class="tag amber">{{ r.note }}</span>{% elif r.status == 'mismatch' %}<span class="tag amber" title="{{ r.note }}">Spec mismatch</span>{% else %}<span class="tag green">Current{% if r.age is not none %} · {{ r.age }}d{% endif %}</span>{% endif %}</td>
+        <td><input form="{{ fid }}" type="number" step="0.01" min="0" name="payout" value="{{ '%.2f' % q.payout if q.payout is not none }}" placeholder="—" aria-label="{{ q.buyer }} payout" style="width:90px"></td>
+        <td><input form="{{ fid }}" type="number" step="0.01" min="0" name="outbound_shipping" value="{{ '%.2f' % (q.outbound_shipping or 0) }}" aria-label="{{ q.buyer }} shipping out" style="width:72px"></td>
+        <td><input form="{{ fid }}" type="number" step="0.01" min="0" name="payout_fee" value="{{ '%.2f' % (q.payout_fee or 0) }}" aria-label="{{ q.buyer }} payout fee" style="width:72px"></td>
+        <td><input form="{{ fid }}" type="number" step="0.01" min="0" name="grading_deduction" value="{{ '%.2f' % (q.grading_deduction or 0) }}" aria-label="{{ q.buyer }} grading deduction" style="width:72px"></td>
+        <td><input form="{{ fid }}" type="date" name="quoted_on" value="{{ q.quoted_on or today }}" max="{{ today }}" aria-label="{{ q.buyer }} quote date" style="width:132px"></td>
+        <td><input form="{{ fid }}" type="url" name="quote_url" value="{{ q.quote_url or '' }}" placeholder="https://" aria-label="{{ q.buyer }} quote link" style="width:130px"></td>
+        <td style="text-align:center"><input form="{{ fid }}" type="checkbox" name="exact_spec" aria-label="{{ q.buyer }} quote is for this exact spec"></td>
+        <td>
+          <form id="{{ fid }}" method="post" action="{{ url_for('save_quote', index=p.index) }}" class="inline">
+            {{ ui.csrf() }}<input type="hidden" name="quote_index" value="{{ qi }}">
+            <button class="btn sm" type="submit">Save</button>
+            <button class="btn sm danger" type="submit" name="delete" value="1" aria-label="Remove {{ q.buyer }}" formnovalidate>Remove</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="small dim">When you re-check a quote on the buyer's site, set Quoted on to today, tick Exact spec and save. Saving stamps the quote with this phone's exact spec. Fee, grading and ship out are deducted from the payout. Leave payout blank to clear a quote.</div>
+
+  <form method="post" action="{{ url_for('save_quote', index=p.index) }}" class="inline">
+    {{ ui.csrf() }}
+    <input type="text" name="buyer" placeholder="Add another buyer" aria-label="New buyer name" style="width:200px" required>
+    <button class="btn sm" type="submit">Add buyer</button>
+  </form>
+
+  <details>
+    <summary>Phone spec and search</summary>
+    <form method="post" action="{{ url_for('edit_phone', index=p.index) }}" style="display:flex;flex-direction:column;gap:12px;margin-top:12px">
+      {{ ui.csrf() }}
+      {% set spec_phone = phone %}{% include "_phone_fields.html" %}
+      <div class="small amber">Changing the spec means existing quotes no longer match until you re-enter them.</div>
+      <div class="inline"><button class="btn" type="submit">Save phone</button>
+        <button class="btn danger" type="submit" name="delete" value="1" formnovalidate>Delete phone</button></div>
+    </form>
+  </details>
+</section>
+{% endfor %}
+
+<section class="panel" aria-labelledby="add-h">
+  <div class="panel-head"><h2 id="add-h" class="lbl">Add a phone</h2></div>
+  <form method="post" action="{{ url_for('add_phone') }}" style="display:flex;flex-direction:column;gap:12px">
+    {{ ui.csrf() }}
+    {% set spec_phone = {'ebay_condition_ids': ['2010','2020','3000']} %}{% include "_phone_fields.html" %}
+    <div><button class="btn" type="submit">Add phone</button></div>
+  </form>
+</section>
+
+<section class="panel" aria-labelledby="gen-h">
+  <div class="panel-head"><h2 id="gen-h" class="lbl">Profit rules and scanning</h2></div>
+  <form method="post" action="{{ url_for('settings_general') }}" style="display:flex;flex-direction:column;gap:12px">
+    {{ ui.csrf() }}
+    <div class="fields">
+      <label class="field"><span>Minimum net profit ($)</span><input type="number" step="0.01" min="0" name="minimum_net_profit" value="{{ settings.minimum_net_profit }}" required></label>
+      <label class="field"><span>Profit buffer ($)</span><input type="number" step="0.01" min="0" name="profit_buffer" value="{{ settings.profit_buffer }}" required></label>
+      <label class="field"><span>Sales tax estimate (%)</span><input type="number" step="0.01" min="0" name="sales_tax_percent" value="{{ '%g' % (settings.sales_tax_rate * 100) }}" required></label>
+      <label class="field"><span>Shipping estimate if unknown ($)</span><input type="number" step="0.01" min="0" name="unknown_shipping_estimate" value="{{ settings.unknown_shipping_estimate }}" required></label>
+      <label class="field"><span>Quote expires after (days)</span><input type="number" min="1" name="quote_max_age_days" value="{{ settings.quote_max_age_days }}" required></label>
+      <label class="field"><span>Min seller feedback (%)</span><input type="number" step="0.1" min="0" max="100" name="min_seller_feedback_percent" value="{{ settings.min_seller_feedback_percent }}" required></label>
+      <label class="field"><span>Min seller ratings</span><input type="number" min="0" name="min_seller_feedback_score" value="{{ settings.min_seller_feedback_score }}" required></label>
+      <label class="field"><span>Weekly opportunity target</span><input type="number" min="1" name="weekly_target" value="{{ settings.weekly_target }}" required></label>
+      <label class="field"><span>Scan hours (0–23, local)</span><input type="text" name="scan_hours" value="{{ settings.scan_hours|join(', ') }}"></label>
+    </div>
+    <label class="inline small"><input type="checkbox" name="auto_scan" {{ 'checked' if settings.auto_scan }}> Scan automatically at these hours while the app is running</label>
+    <div class="small dim">A listing is surfaced only if estimated net ≥ minimum + buffer (now {{ (settings.minimum_net_profit + settings.profit_buffer)|money }}).</div>
+    <div><button class="btn primary" type="submit">Save settings</button></div>
+  </form>
+</section>
+
+<section class="panel" aria-labelledby="env-h">
+  <div class="panel-head"><h2 id="env-h" class="lbl">Connections</h2></div>
+  <div class="small muted">Keys are read from environment variables when the app starts, so they never sit in a file the dashboard can show.</div>
+  <div class="lines">
+    <div><span>eBay: <span class="mono">EBAY_APP_ID</span>, <span class="mono">EBAY_CERT_ID</span></span><span class="{{ 'green' if status.ebay_keys else 'amber' }}">{{ 'Set' if status.ebay_keys else 'Not set' }}</span></div>
+    <div><span>Email: <span class="mono">RESEND_API_KEY</span>, <span class="mono">EMAIL_FROM</span>, <span class="mono">ALERT_EMAIL_TO</span></span><span class="{{ 'green' if status.email else 'amber' }}">{{ 'Set' if status.email else 'Not set' }}</span></div>
+    <div><span>SMS: <span class="mono">TWILIO_ACCOUNT_SID</span>, <span class="mono">TWILIO_AUTH_TOKEN</span>, <span class="mono">TWILIO_FROM</span>, <span class="mono">ALERT_SMS_TO</span></span><span class="{{ 'green' if status.sms else 'amber' }}">{{ 'Set' if status.sms else 'Not set' }}</span></div>
+  </div>
+</section>
+{% endblock %}

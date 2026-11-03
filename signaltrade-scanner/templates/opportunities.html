@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% import "_macros.html" as ui with context %}
+{% block title %}Opportunities{% endblock %}
+{% block heading %}Opportunities{% endblock %}
+{% block sub %}Listings with a verified exit that cleared {{ (settings.minimum_net_profit + settings.profit_buffer)|money }} when surfaced{% endblock %}
+{% block content %}
+<div class="inline">
+  {% for key, label in [('open','Open'),('dismissed','Dismissed'),('all','All')] %}
+  <a class="btn sm" href="{{ url_for('opportunities', show=key) }}" {% if show == key %}style="background:#22262B;border-color:#3A3F46" aria-current="page"{% endif %}>{{ label }}</a>
+  {% endfor %}
+</div>
+<section class="panel">
+  {% if rows %}
+  <div class="tablebox">
+    <table>
+      <thead><tr><th scope="col">Surfaced</th><th scope="col">Listing</th><th scope="col">Phone</th><th scope="col" class="r">Price</th><th scope="col">Best exit</th><th scope="col" class="r">Est. net</th><th scope="col">Checks</th><th scope="col">Stage</th></tr></thead>
+      <tbody>
+      {% for item_id, e in rows %}
+      {% set done = e.checklist.values()|select|list|length if e.checklist else 0 %}
+      {% set st = e.payout and 'paid' or (e.sent and 'sent') or (e.inspection and 'inspected') or (e.purchase and 'purchased') or (e.dismissed and 'dismissed') or 'open' %}
+      <tr>
+        <td>{{ e.surfaced_at|short }}</td>
+        <td class="wrap"><a href="{{ url_for('item', item_id=item_id) }}">{{ e.title }}</a>{% if item_id in current %} <span class="tag green">In last scan</span>{% endif %}</td>
+        <td>{{ e.phone }}</td>
+        <td class="r">{{ e.breakdown.price|money if e.breakdown else '—' }}</td>
+        <td>{{ e.buyer }}</td>
+        <td class="r green">{{ e.estimated_profit|money }}</td>
+        <td class="num {{ 'green' if done == CHECKLIST|length else 'dim' }}">{{ done }}/{{ CHECKLIST|length }}</td>
+        <td>{{ ui.stage_tag(e, st) }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty">Nothing here.<span class="small">New opportunities appear after a scan finds listings that clear your bar.</span></div>
+  {% endif %}
+</section>
+{% endblock %}

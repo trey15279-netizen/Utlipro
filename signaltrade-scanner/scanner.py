@@ -23,7 +23,7 @@ import base64
 import json
 import os
 import sys
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 import requests
@@ -62,7 +62,13 @@ DEFAULT_SETTINGS = {
     "min_seller_feedback_percent": 98.0,
     "min_seller_feedback_score": 25,
     "weekly_target": 10,
+    "auto_scan": True,
+    "scan_hours": [8, 13, 19],
 }
+
+
+class ScanError(Exception):
+    """A scan couldn't run, like missing eBay keys."""
 
 
 def required_profit(settings):
@@ -79,7 +85,8 @@ def get_access_token():
     app_id = os.environ.get("EBAY_APP_ID")
     cert_id = os.environ.get("EBAY_CERT_ID")
     if not (app_id and cert_id):
-        raise SystemExit("Set EBAY_ACCESS_TOKEN, or EBAY_APP_ID and EBAY_CERT_ID.")
+        raise ScanError("eBay keys aren't set. Set EBAY_APP_ID and EBAY_CERT_ID, "
+                        "or EBAY_ACCESS_TOKEN.")
 
     credentials = base64.b64encode(f"{app_id}:{cert_id}".encode()).decode()
     response = requests.post(
@@ -125,6 +132,14 @@ def load_config(path=CONFIG_PATH):
         config = json.load(f)
     config["settings"] = {**DEFAULT_SETTINGS, **config.get("settings", {})}
     return config
+
+
+def save_config(config, path=CONFIG_PATH):
+    tmp = Path(str(path) + ".tmp")
+    with open(tmp, "w") as f:
+        json.dump(config, f, indent=2)
+        f.write("\n")
+    os.replace(tmp, path)
 
 
 def _norm(value):
@@ -305,6 +320,36 @@ def scan(config, search=search_ebay, today=None):
     return deals, warnings
 
 
+def run_scan(config, state, send_alerts=True, search=search_ebay, now=None):
+    """Scan, alert on new deals, and record them and the scan in state.
+
+    Raises ScanError (or a requests error) if the scan couldn't run; the
+    failure is recorded in state["last_scan"] either way.
+    """
+    now = now or datetime.now(timezone.utc)
+    try:
+        deals, warnings = scan(config, search=search, today=now.date())
+    except (ScanError, requests.RequestException) as error:
+        state["last_scan"] = {"at": now.isoformat(), "ok": False, "error": str(error)}
+        raise
+
+    settings = config["settings"]
+    fresh = tracking.new_deals(deals, state)
+    sent_by = []
+    if fresh and send_alerts:
+        try:
+            sent_by = alerts.send([describe(d, settings) for d in fresh])
+        except requests.RequestException as error:
+            warnings.append(f"Alert failed: {error}")
+    tracking.record_alerted(fresh, state, now=now)
+    state["last_scan"] = {
+        "at": now.isoformat(), "ok": True, "found": len(deals), "new": len(fresh),
+        "warnings": warnings, "alerted_by": sent_by,
+        "current": [d["item_id"] for d in deals],
+    }
+    return deals, warnings, fresh, sent_by
+
+
 # ---------- Output ----------
 
 def describe(deal, settings):
@@ -336,7 +381,8 @@ def main(argv=None):
     commands = parser.add_subparsers(dest="command")
 
     scan_cmd = commands.add_parser("scan", help="scan and alert (default)")
-    scan_cmd.add_argument("--no-alerts", action="store_true", help="print only, don't notify")
+    scan_cmd.add_argument("--no-alerts", action="store_true",
+                          help="don't send email/SMS (results are still recorded)")
 
     commands.add_parser("report", help="weekly count and results by stage")
 
@@ -411,23 +457,24 @@ def main(argv=None):
         print(tracking.decision_record(args.item_id, state["alerted"][args.item_id]))
         return
 
-    deals, warnings = scan(config)
+    try:
+        deals, warnings, fresh, sent_by = run_scan(
+            config, state, send_alerts=not getattr(args, "no_alerts", False))
+    except (ScanError, requests.RequestException) as error:
+        tracking.save_state(state, STATE_PATH)
+        raise SystemExit(f"Scan failed: {error}")
+    tracking.save_state(state, STATE_PATH)
     for warning in warnings:
         print(f"! {warning}")
 
-    fresh = tracking.new_deals(deals, state)
     print(f"\n{len(deals)} listings clear ${required_profit(settings)} "
           f"(${settings['minimum_net_profit']} + ${settings['profit_buffer']} buffer), "
           f"{len(fresh)} new.\n")
     for deal in deals:
         print(describe(deal, settings) + "\n")
 
-    if fresh and not getattr(args, "no_alerts", False):
-        sent_by = alerts.send([describe(d, settings) for d in fresh])
-        if sent_by:
-            print(f"Alert sent by {', '.join(sent_by)}.")
-        tracking.record_alerted(fresh, state)
-        tracking.save_state(state, STATE_PATH)
+    if sent_by:
+        print(f"Alert sent by {', '.join(sent_by)}.")
 
     print(alerts.CHECKLIST)
 

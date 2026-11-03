@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Transactions{% endblock %}
+{% block heading %}Transactions{% endblock %}
+{% block sub %}Every purchase, with estimated and actual profit{% endblock %}
+{% block content %}
+<section class="panel">
+  {% if rows %}
+  {% set inventory = rows %}
+  {% include "_device_table.html" %}
+  {% else %}
+  <div class="empty">No purchases recorded yet.</div>
+  {% endif %}
+</section>
+{% endblock %}
