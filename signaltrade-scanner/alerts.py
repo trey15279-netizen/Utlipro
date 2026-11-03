@@ -8,13 +8,20 @@ import os
 
 import requests
 
-FOOTER = "Review each listing and approve it yourself. Nothing has been bought."
+CHECKLIST = """Nothing has been bought. Before you approve a purchase:
+  1. Re-check the buyer's quote now for this exact model, storage, carrier and condition.
+  2. Confirm the sales tax eBay charges at checkout. The estimate uses a fixed rate.
+  3. Ask the seller for the IMEI and check it isn't blacklisted, financed or carrier-locked.
+  4. Confirm Activation Lock / Find My is off and the seller owns the phone.
+  5. Compare the photos to the condition the quote assumes.
+After buying: python scanner.py bought ITEM_ID COST
+When paid:    python scanner.py paid ITEM_ID AMOUNT"""
 
 
 def build_message(descriptions):
     count = len(descriptions)
     subject = f"SignalTrade: {count} new phone{'s' if count != 1 else ''} to review"
-    body = "\n\n".join(descriptions) + "\n\n" + FOOTER
+    body = "\n\n".join(descriptions) + "\n\n" + CHECKLIST
     return subject, body
 
 
@@ -50,7 +57,7 @@ def send_text(descriptions):
         f"https://api.twilio.com/2010-04-01/Accounts/{sid}/Messages.json",
         auth=(sid, token),
         data={"From": sender, "To": to,
-              "Body": "SignalTrade:\n" + "\n".join(headlines)},
+              "Body": "SignalTrade (not bought, review first):\n" + "\n".join(headlines)},
         timeout=20,
     )
     response.raise_for_status()

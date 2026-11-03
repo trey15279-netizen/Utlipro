@@ -1,6 +1,7 @@
 {
   "settings": {
     "minimum_net_profit": 75,
+    "profit_buffer": 25,
     "sales_tax_rate": 0.08,
     "unknown_shipping_estimate": 15,
     "quote_max_age_days": 7,
@@ -10,14 +11,34 @@
   },
   "phones": [
     {
-      "name": "iPhone 13 128GB Unlocked",
+      "name": "iPhone 13 128GB Unlocked, Good",
+      "model": "iPhone 13",
+      "storage": "128GB",
+      "carrier": "Unlocked",
+      "condition": "Good",
       "query": "iPhone 13 128GB unlocked",
-      "required_words": ["iphone 13", "128", "unlocked"],
-      "excluded_words": ["mini", "pro", "max"],
-      "ebay_condition_ids": ["2010", "2020", "2030", "3000"],
+      "required_words": [
+        "iphone 13",
+        "128",
+        "unlocked"
+      ],
+      "excluded_words": [
+        "mini",
+        "pro",
+        "max"
+      ],
+      "ebay_condition_ids": [
+        "2010",
+        "2020",
+        "3000"
+      ],
       "buyer_quotes": [
         {
           "buyer": "BankMyCell",
+          "model": "iPhone 13",
+          "storage": "128GB",
+          "carrier": "Unlocked",
+          "condition": "Good",
           "payout": null,
           "outbound_shipping": 0,
           "payout_fee": 0,
@@ -27,6 +48,10 @@
         },
         {
           "buyer": "GadgetGone",
+          "model": "iPhone 13",
+          "storage": "128GB",
+          "carrier": "Unlocked",
+          "condition": "Good",
           "payout": null,
           "outbound_shipping": 0,
           "payout_fee": 0,
@@ -36,6 +61,10 @@
         },
         {
           "buyer": "BuyBackBoss",
+          "model": "iPhone 13",
+          "storage": "128GB",
+          "carrier": "Unlocked",
+          "condition": "Good",
           "payout": null,
           "outbound_shipping": 0,
           "payout_fee": 0,
@@ -45,6 +74,10 @@
         },
         {
           "buyer": "ItsWorthMore",
+          "model": "iPhone 13",
+          "storage": "128GB",
+          "carrier": "Unlocked",
+          "condition": "Good",
           "payout": null,
           "outbound_shipping": 0,
           "payout_fee": 0,
