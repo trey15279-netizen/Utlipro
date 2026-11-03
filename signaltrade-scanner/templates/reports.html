@@ -1,34 +1,34 @@
 {% extends "base.html" %}
 {% import "_macros.html" as ui with context %}
-{% block title %}Performance Reports{% endblock %}
-{% block heading %}Performance Reports{% endblock %}
-{% block sub %}From recorded purchases and payouts only{% endblock %}
+{% block title %}Results{% endblock %}
+{% block heading %}Results{% endblock %}
+{% block sub %}Only from phones you've bought and been paid for{% endblock %}
 {% block content %}
 <div class="row">
   <section class="panel" style="flex:1.4 1 420px" aria-labelledby="trend-h">
-    <div class="panel-head"><h2 id="trend-h" class="lbl">Profit trend</h2><span class="small dim">6 weeks · cumulative</span></div>
+    <div class="panel-head"><h2 id="trend-h" class="lbl">Profit over time</h2><span class="small dim">6 weeks · cumulative</span></div>
     {{ ui.profit_chart(chart, m) }}
     <div class="stats num">
-      <div><span class="lbl" style="font-size:10px">Actual net profit</span><span class="v">{{ m.actual_profit|money }}</span><span class="small dim">Realized · {{ m.paid }} paid</span></div>
+      <div><span class="lbl" style="font-size:10px">Real profit</span><span class="v">{{ m.actual_profit|money }}</span><span class="small dim">{{ m.paid }} phone{{ "s" if m.paid != 1 }} paid</span></div>
       <div><span class="lbl" style="font-size:10px">Estimated for those</span><span class="v">{{ m.estimated_for_paid|money }}</span>
-        <span class="small dim">{% if m.paid and m.estimated_for_paid %}Actual is {{ '%+.0f' % (100 * (m.actual_profit - m.estimated_for_paid) / m.estimated_for_paid) }}% vs estimate{% else %}—{% endif %}</span></div>
-      <div><span class="lbl" style="font-size:10px">Avg actual / phone</span><span class="v">{{ m.avg_actual|money }}</span><span class="small dim">Est. {{ m.avg_estimated|money }}</span></div>
-      <div><span class="lbl" style="font-size:10px">Capital deployed</span><span class="v">{{ m.capital_deployed|money }}</span><span class="small dim">{{ m.capital_outstanding|money }} not yet paid back</span></div>
+        <span class="small dim">{% if m.paid and m.estimated_for_paid %}Real profit is {{ '%+.0f' % (100 * (m.actual_profit - m.estimated_for_paid) / m.estimated_for_paid) }}% vs estimate{% else %}—{% endif %}</span></div>
+      <div><span class="lbl" style="font-size:10px">Avg profit per phone</span><span class="v">{{ m.avg_actual|money }}</span><span class="small dim">Est. {{ m.avg_estimated|money }}</span></div>
+      <div><span class="lbl" style="font-size:10px">Spent on phones</span><span class="v">{{ m.capital_deployed|money }}</span><span class="small dim">{{ m.capital_outstanding|money }} not paid back yet</span></div>
     </div>
   </section>
   <section class="panel" style="flex:1 1 320px" aria-labelledby="funnel-h">
-    <div class="panel-head"><h2 id="funnel-h" class="lbl">Funnel</h2><span class="small dim">All time</span></div>
+    <div class="panel-head"><h2 id="funnel-h" class="lbl">From deal to payment</h2><span class="small dim">All time</span></div>
     <div class="lines num">
-      <div><span>Surfaced</span><span>{{ m.surfaced }}</span></div>
-      <div><span>Purchased</span><span>{{ m.purchased }}</span></div>
-      <div><span>Inspected</span><span>{{ m.inspected }} (passed {{ m.passed }}, failed {{ m.failed }})</span></div>
-      <div><span>Inspection pass rate</span><span>{{ m.pass_rate ~ '%' if m.pass_rate is not none else '—' }}</span></div>
-      <div><span>Sent to buyer</span><span>{{ m.sent }}</span></div>
-      <div><span>Paid</span><span>{{ m.paid }} (full {{ m.paid_full }}, reduced {{ m.paid_reduced }})</span></div>
+      <div><span>Deals found</span><span>{{ m.surfaced }}</span></div>
+      <div><span>Bought</span><span>{{ m.purchased }}</span></div>
+      <div><span>Checked by you</span><span>{{ m.inspected }} (passed {{ m.passed }}, failed {{ m.failed }})</span></div>
+      <div><span>Passed your check</span><span>{{ m.pass_rate ~ '%' if m.pass_rate is not none else '—' }}</span></div>
+      <div><span>Sent to a buyer</span><span>{{ m.sent }}</span></div>
+      <div><span>Paid</span><span>{{ m.paid }} ({{ m.paid_full }} in full, {{ m.paid_reduced }} paid less)</span></div>
     </div>
     <div class="stats">{{ ui.opp_bars(chart, m) }}</div>
-    <div class="small dim">This week: {{ m.opportunities_7d }} verified opportunities in the last 7 days, target {{ m.weekly_target }}.</div>
+    <div class="small dim">Last 7 days: {{ m.opportunities_7d }} deals found. Your goal is {{ m.weekly_target }}.</div>
   </section>
 </div>
-<p class="small dim" style="margin:0">If actual profit keeps falling short of the estimate, raise a buyer's grading deduction or the profit buffer in Settings.</p>
+<p class="small dim" style="margin:0">If real profit keeps coming in under the estimate, raise a buyer's “set aside for lower grading” in Buyer Prices, or the safety buffer in Settings.</p>
 {% endblock %}

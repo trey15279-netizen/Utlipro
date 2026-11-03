@@ -7,23 +7,23 @@
 {% macro comparison(rows, spec, show_net=True, compact=False) %}
 <div class="tablebox">
 <table>
-  <thead><tr><th scope="col">Buyer</th><th scope="col">Quoted</th><th scope="col" class="r">Payout</th>{% if not compact %}<th scope="col" class="r">Costs</th>{% endif %}{% if show_net %}<th scope="col" class="r">Est. net</th>{% endif %}<th scope="col">Status</th></tr></thead>
+  <thead><tr><th scope="col">Buyer</th><th scope="col">Checked</th><th scope="col" class="r">Payout</th>{% if not compact %}<th scope="col" class="r">Costs</th>{% endif %}{% if show_net %}<th scope="col" class="r">Est. profit</th>{% endif %}<th scope="col">Status</th></tr></thead>
   <tbody>
   {% for r in rows %}
   {% set q = r.quote %}
   <tr class="{{ 'best' if r.status == 'best' }}">
-    <td style="font-weight:{{ 600 if r.status == 'best' else 500 }}">{% if q.quote_url %}<a href="{{ q.quote_url }}" target="_blank" rel="noopener" style="color:inherit">{{ r.buyer }}</a>{% else %}{{ r.buyer }}{% endif %}</td>
+    <td style="font-weight:{{ 600 if r.status == 'best' else 500 }}">{% if r.site %}<a href="{{ r.site }}" target="_blank" rel="noopener" style="color:inherit">{{ r.buyer }}</a>{% else %}{{ r.buyer }}{% endif %}</td>
     <td class="{{ 'amber' if r.status == 'expired' }}">{% if q.quoted_on %}{{ q.quoted_on|short }}{% if r.age is not none and not compact %} <span class="dim">· {{ r.age }}d</span>{% endif %}{% else %}<span class="dim">—</span>{% endif %}</td>
     <td class="r {{ 'dim' if r.status in ('expired','mismatch','missing') }}" {% if r.status == 'expired' %}style="text-decoration:line-through"{% endif %}>{{ q.payout|money }}</td>
     {% if not compact %}<td class="r">{% if q.payout is not none %}{{ (-(q.grading_deduction or 0) - (q.payout_fee or 0) - (q.outbound_shipping or 0))|money }}{% else %}—{% endif %}</td>{% endif %}
-    {% if show_net %}<td class="r {{ 'green' if r.status == 'best' }}" style="font-weight:{{ 600 if r.status == 'best' else 400 }}">{% if r.net is not none %}{{ r.net|money }}{% else %}<span class="dim">Excluded</span>{% endif %}</td>{% endif %}
+    {% if show_net %}<td class="r {{ 'green' if r.status == 'best' }}" style="font-weight:{{ 600 if r.status == 'best' else 400 }}">{% if r.net is not none %}{{ r.net|money }}{% else %}<span class="dim">Not used</span>{% endif %}</td>{% endif %}
     <td>
-      {% if r.status == 'best' %}<span class="tag green">Best exit</span>
-      {% elif r.status == 'ok' %}<span class="tag">Verified</span>
-      {% elif r.status == 'below' %}<span class="tag">{{ 'Below bar' if compact else r.note }}</span>
-      {% elif r.status == 'expired' %}<span class="tag amber">{{ 'Re-verify' if compact else 'Re-verify quote' }}</span>
-      {% elif r.status == 'mismatch' %}<span class="tag amber" title="{{ r.note }}">Spec mismatch</span>
-      {% else %}<span class="tag">No quote</span>{% endif %}
+      {% if r.status == 'best' %}<span class="tag green">Best</span>
+      {% elif r.status == 'ok' %}<span class="tag">OK</span>
+      {% elif r.status == 'below' %}<span class="tag">Too low</span>
+      {% elif r.status == 'expired' %}<span class="tag amber">Check again</span>
+      {% elif r.status == 'mismatch' %}<span class="tag amber" title="{{ r.note }}">Check again</span>
+      {% else %}<span class="tag">No price</span>{% endif %}
     </td>
   </tr>
   {% endfor %}
@@ -37,28 +37,28 @@
 <div class="lines num">
   <div><span>Listing price</span><span>{{ b.price|money }}</span></div>
   <div><span>Shipping to you{% if e.shipping_known == false %} <span class="amber">· estimated</span>{% endif %}</span><span>{{ b.inbound_shipping|money }}</span></div>
-  <div><span>Est. sales tax ({{ '%g' % (settings.sales_tax_rate * 100) }}%) <span class="dim">· confirm at checkout</span></span><span>{{ b.sales_tax|money }}</span></div>
-  <div class="total"><span>Est. acquisition cost</span><span>{{ b.buy_cost|money }}</span></div>
-  <div style="margin-top:4px"><span>Verified payout · {{ b.buyer }} <span class="dim">({{ b.quoted_on|short }})</span></span><span>{{ b.payout|money }}</span></div>
+  <div><span>Tax, about {{ '%g' % (settings.sales_tax_rate * 100) }}%</span><span>{{ b.sales_tax|money }}</span></div>
+  <div class="total"><span>You pay about</span><span>{{ b.buy_cost|money }}</span></div>
+  <div style="margin-top:4px"><span>{{ b.buyer }} pays <span class="dim">(checked {{ b.quoted_on|short }})</span></span><span>{{ b.payout|money }}</span></div>
   {% if b.payout_fee %}<div><span>Payout fee</span><span>{{ (-b.payout_fee)|money }}</span></div>{% endif %}
-  <div><span>Grading allowance</span><span>{{ (-b.grading_deduction)|money }}</span></div>
+  <div><span>Set aside in case they grade it lower</span><span>{{ (-b.grading_deduction)|money }}</span></div>
   <div><span>Ship to buyer</span><span>{{ (-b.outbound_shipping)|money if b.outbound_shipping else '$0.00' }}</span></div>
 </div>
 {% set bar = settings.minimum_net_profit + settings.profit_buffer %}
 {% set margin = b.net_profit - bar %}
 <div class="result {{ 'miss' if margin < 0 }}">
   <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
-    <span class="inline"><span class="small muted">Est. net profit</span><span class="tag">Estimate</span></span>
+    <span class="small muted">Est. profit</span>
     <span class="big num {{ 'green' if margin >= 0 else 'amber' }}">{{ b.net_profit|money }}</span>
   </div>
-  <div class="small muted num">Required {{ bar|money }} = {{ settings.minimum_net_profit|money }} minimum + {{ settings.profit_buffer|money }} buffer ·
-    {% if margin >= 0 %}clears by <span class="green">{{ margin|money }}</span>{% else %}<span class="amber">short by {{ (-margin)|money }} under current settings</span>{% endif %}</div>
+  <div class="small muted num">Your target is {{ bar|money }} ({{ settings.minimum_net_profit|money }} + {{ settings.profit_buffer|money }} safety buffer).
+    {% if margin >= 0 %}This beats it by <span class="green">{{ margin|money }}</span>.{% else %}<span class="amber">This is {{ (-margin)|money }} short with your current settings.</span>{% endif %}</div>
 </div>
 {% endmacro %}
 
 {% macro steps(stage) %}
 {% set order = ['open','purchased','inspected','sent','paid'] %}
-{% set names = {'open':'Surfaced','purchased':'Purchased','inspected':'Inspected','sent':'Sent to buyer','paid':'Paid'} %}
+{% set names = {'open':'1 · Found','purchased':'2 · Bought','inspected':'3 · Checked','sent':'4 · Sent','paid':'5 · Paid'} %}
 {% set idx = order.index(stage) if stage in order else 0 %}
 <div class="steps">
 {% for s in order %}<span class="step {{ 'done' if loop.index0 < idx else ('now' if loop.index0 == idx else '') }}">{{ names[s] }}</span>{% endfor %}
@@ -67,18 +67,18 @@
 
 {% macro stage_tag(e, stage) %}
 {% if stage == 'paid' %}<span class="tag green">Paid</span>
-{% elif stage == 'sent' %}<span class="tag">Awaiting payout</span>
-{% elif stage == 'inspected' %}{% if e.inspection.passed %}<span class="tag">Passed · ready to send</span>{% else %}<span class="tag red">Failed inspection</span>{% endif %}
-{% elif stage == 'purchased' %}<span class="tag amber">Awaiting inspection</span>
-{% elif stage == 'dismissed' %}<span class="tag">Dismissed</span>
-{% else %}<span class="tag outline">Open</span>{% endif %}
+{% elif stage == 'sent' %}<span class="tag">Waiting for payment</span>
+{% elif stage == 'inspected' %}{% if e.inspection.passed %}<span class="tag">Ready to send</span>{% else %}<span class="tag red">Failed your check</span>{% endif %}
+{% elif stage == 'purchased' %}<span class="tag amber">Check when it arrives</span>
+{% elif stage == 'dismissed' %}<span class="tag">Hidden</span>
+{% else %}<span class="tag outline">New deal</span>{% endif %}
 {% endmacro %}
 
 {% macro profit_chart(chart, m) %}
 <figure style="margin:0;display:flex;flex-direction:column;gap:6px">
   <div class="inline small muted" style="gap:14px">
-    <span class="inline" style="gap:6px"><i aria-hidden="true" style="width:14px;height:2px;background:var(--green)"></i>Actual realized</span>
-    <span class="inline" style="gap:6px"><i aria-hidden="true" style="width:14px;border-top:2px dashed var(--dim)"></i>Estimated (same devices)</span>
+    <span class="inline" style="gap:6px"><i aria-hidden="true" style="width:14px;height:2px;background:var(--green)"></i>Real profit</span>
+    <span class="inline" style="gap:6px"><i aria-hidden="true" style="width:14px;border-top:2px dashed var(--dim)"></i>Estimated</span>
   </div>
   <div style="display:flex;gap:8px">
     <div class="num dim" aria-hidden="true" style="display:flex;flex-direction:column;justify-content:space-between;font-size:10px;text-align:right;height:112px;padding-bottom:2px">
@@ -97,7 +97,7 @@
 {% endmacro %}
 
 {% macro opp_bars(chart, m) %}
-<div style="display:flex;justify-content:space-between;align-items:baseline"><span class="lbl" style="font-size:10px">Weekly verified opportunities</span><span class="small dim">target {{ m.weekly_target }}</span></div>
+<div style="display:flex;justify-content:space-between;align-items:baseline"><span class="lbl" style="font-size:10px">Deals found per week</span><span class="small dim">goal {{ m.weekly_target }}</span></div>
 <div class="bars" role="img" aria-label="Weekly opportunities: {% for b in chart.bars %}{{ b.label }} {{ b.count }}{{ ', ' if not loop.last }}{% endfor %}. Target {{ m.weekly_target }}.">
   <div class="t" aria-hidden="true" style="bottom:{{ chart.target_y }}px"></div>
   {% for b in chart.bars %}<div class="b {{ 'met' if b.met }}"><span>{{ b.count }}</span><i style="height:{{ [b.height, 1]|max }}px"></i></div>{% endfor %}

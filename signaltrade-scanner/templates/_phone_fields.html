@@ -3,16 +3,23 @@
   <label class="field"><span>Model</span><input type="text" name="model" value="{{ spec_phone.model or '' }}" placeholder="iPhone 13" required></label>
   <label class="field"><span>Storage</span><input type="text" name="storage" value="{{ spec_phone.storage or '' }}" placeholder="128GB" required></label>
   <label class="field"><span>Carrier</span><input type="text" name="carrier" value="{{ spec_phone.carrier or '' }}" placeholder="Unlocked" required></label>
-  <label class="field"><span>Buyer condition grade</span><input type="text" name="condition" value="{{ spec_phone.condition or '' }}" placeholder="Good" required></label>
-  <label class="field" style="grid-column:span 2"><span>eBay search</span><input type="text" name="query" value="{{ spec_phone.query or '' }}" placeholder="Defaults to model, storage and carrier"></label>
-  <label class="field" style="grid-column:span 2"><span>Title must contain (comma separated)</span><input type="text" name="required_words" value="{{ (spec_phone.required_words or [])|join(', ') }}" placeholder="iphone 13, 128, unlocked"></label>
-  <label class="field" style="grid-column:span 2"><span>Title must not contain</span><input type="text" name="excluded_words" value="{{ (spec_phone.excluded_words or [])|join(', ') }}" placeholder="mini, pro, max"></label>
+  <label class="field"><span>Condition you'll sell it as</span><input type="text" name="condition" value="{{ spec_phone.condition or '' }}" placeholder="Good" required></label>
 </div>
-<fieldset style="border:0;padding:0;margin:0">
-  <legend class="small muted" style="margin-bottom:6px">eBay conditions to search</legend>
-  <div class="inline" style="gap:14px">
-  {% for cid, label in conditions %}
-    <label class="inline small"><input type="checkbox" name="ebay_condition_ids" value="{{ cid }}" {{ 'checked' if cid in (spec_phone.ebay_condition_ids or []) }}>{{ label }}</label>
-  {% endfor %}
+<details>
+  <summary>Search options</summary>
+  <div style="display:flex;flex-direction:column;gap:12px;margin-top:10px">
+    <div class="fields">
+      <label class="field" style="grid-column:span 2"><span>eBay search words</span><input type="text" name="query" value="{{ spec_phone.query or '' }}" placeholder="Model, storage and carrier"></label>
+      <label class="field" style="grid-column:span 2"><span>Listing title must include (commas between)</span><input type="text" name="required_words" value="{{ (spec_phone.required_words or [])|join(', ') }}" placeholder="Model, storage and carrier"></label>
+      <label class="field" style="grid-column:span 2"><span>Skip listings whose title has</span><input type="text" name="excluded_words" value="{{ (spec_phone.excluded_words or [])|join(', ') }}" placeholder="mini, pro, max"></label>
+    </div>
+    <fieldset style="border:0;padding:0;margin:0">
+      <legend class="small muted" style="margin-bottom:6px">eBay conditions to include</legend>
+      <div class="inline" style="gap:14px">
+      {% for cid, label in conditions %}
+        <label class="inline small"><input type="checkbox" name="ebay_condition_ids" value="{{ cid }}" {{ 'checked' if cid in (spec_phone.ebay_condition_ids or []) }}>{{ label }}</label>
+      {% endfor %}
+      </div>
+    </fieldset>
   </div>
-</fieldset>
+</details>

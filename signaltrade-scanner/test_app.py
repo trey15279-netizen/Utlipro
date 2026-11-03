@@ -63,78 +63,106 @@ class AppTest(unittest.TestCase):
         return self.client.post(url, data=data, follow_redirects=True)
 
     def test_every_page_renders_empty(self):
-        for url in ("/", "/scan", "/opportunities", "/inventory", "/transactions",
-                    "/reports", "/settings"):
+        for url in ("/", "/scan", "/deals", "/phones", "/results", "/prices", "/settings",
+                    "/phones?show=done", "/deals?show=all"):
             response = self.client.get(url)
             self.assertEqual(response.status_code, 200, url)
-        self.assertIn(b"No open opportunities", self.client.get("/").data)
+        home = self.client.get("/").data.decode()
+        self.assertIn("Get set up", home)
+        self.assertIn("Re-check 1 buyer price", home)  # stale BuyBackBoss
+        for old in ("/opportunities", "/inventory", "/transactions", "/reports"):
+            self.assertEqual(self.client.get(old).status_code, 302, old)
 
     def test_full_flow(self):
-        html = self.post("/scan", alerts="").data.decode()
-        self.assertIn("2 listings clear the bar, 2 new", html)
+        html = self.post("/scan").data.decode()
+        self.assertIn("Found 2 new deals", html)
         state = self.state()
         self.assertEqual(set(state["alerted"]), {"v1|111|0", "v1|222|0"})
 
-        page = self.client.get("/").data.decode()
-        # Featured is the most profitable: 285 - 10 - (148.5 * 1.08 = 160.38) = 114.62
-        self.assertIn("$114.62", page)
-        self.assertIn("Re-verify", page)  # stale BuyBackBoss
-        self.assertIn("Best exit", page)
+        home = self.client.get("/").data.decode()
+        self.assertIn("Review 2 deals", home)
+        self.assertIn("$114.62", home)  # 285 - 10 - (148.5 * 1.08)
 
-        item = "/items/v1|111|0"
-        html = self.post(item + "/bought", price="140", shipping="8.5", tax="11.88",
-                         imei_result="clean", imei_last4="4821").data.decode()
-        self.assertIn("Complete every pre-purchase check first", html)
-        self.assertNotIn("purchase", self.state()["alerted"]["v1|111|0"])
+        item = "/deals/v1|111|0"
+        page = self.client.get(item).data.decode()
+        self.assertIn("Before you buy", page)
+        self.assertIn("Check again", page)  # stale BuyBackBoss
 
-        self.client.post(item + "/checklist", data={"check": ["imei", "lock", "carrier", "owner",
-                                                              "condition", "quote", "checkout"]})
-        html = self.post(item + "/bought", price="140", shipping="8.5", tax="11.88",
-                         imei_result="clean", imei_last4="356938035643809").data.decode()
+        # Buying with checks missing saves the checks but no purchase
+        html = self.post(item + "/bought", check=["imei", "lock"], price="140", shipping="8.5",
+                         tax="11.88").data.decode()
+        self.assertIn("Tick the last 5 checks", html)
+        e = self.state()["alerted"]["v1|111|0"]
+        self.assertNotIn("purchase", e)
+        self.assertTrue(e["checklist"]["imei"])
+
+        all_checks = ["imei", "lock", "carrier", "owner", "condition", "quote", "checkout"]
+        html = self.post(item + "/bought", check=all_checks, price="140", shipping="8.5",
+                         tax="11.88", imei_last4="356938035643809").data.decode()
         self.assertIn("Store only the last 4 digits", html)
-        self.post(item + "/bought", price="140", shipping="8.5", tax="11.88",
-                  imei_result="clean", imei_last4="4821")
-        self.post(item + "/inspected", result="pass", notes="battery 88%")
-        self.post(item + "/sent", buyer="GadgetGone", shipping="0", other_costs="1.50")
+        html = self.post(item + "/bought", check=all_checks, price="140", shipping="8.5",
+                         tax="11.88", imei_last4="4821").data.decode()
+        self.assertIn("Check the phone when it arrives", html)
+        self.assertIn("Check the iPhone 13 128GB Unlocked, Good when it arrives",
+                      self.client.get("/").data.decode())
+
+        html = self.post(item + "/inspected", result="pass", notes="battery 88%").data.decode()
+        self.assertIn("Send it to GadgetGone", html)
+        html = self.post(item + "/sent", shipping="0", other_costs="1.50").data.decode()
+        self.assertIn("Record the payment from GadgetGone", html)
+        self.assertIn("Record payment from GadgetGone", self.client.get("/").data.decode())
         html = self.post(item + "/paid", received="275").data.decode()
-        self.assertIn("Payout recorded", html)
+        self.assertIn("This phone is done", html)
 
         e = self.state()["alerted"]["v1|111|0"]
         self.assertEqual(e["purchase"]["acquisition_cost"], 160.38)
-        # 275 - 160.38 - 1.50
+        self.assertEqual(e["purchase"]["imei_result"], "clean")
         page = self.client.get("/").data.decode()
-        self.assertIn("$113.12", page)
-        self.assertIn("reduced 1", page)  # expected 285, got 275
-        self.assertIn("Expected $285.00", page)
-        self.assertIn("100%", page)     # pass rate
-        for url in ("/inventory", "/transactions", "/reports", "/opportunities?show=all", item):
+        self.assertIn("$113.12", page)  # 275 - 160.38 - 1.50
+        self.assertIn("100%", page)
+        self.assertIn("paid $10.00 less than expected", self.client.get(item).data.decode())
+        for url in ("/phones?show=done", "/phones?show=all", "/results", "/deals?show=all"):
             self.assertEqual(self.client.get(url).status_code, 200, url)
-        self.assertIn("ends 4821", self.client.get(item).data.decode())
+
+    def test_failed_check_needs_a_buyer_offer(self):
+        self.post("/scan")
+        item = "/deals/v1|111|0"
+        all_checks = ["imei", "lock", "carrier", "owner", "condition", "quote", "checkout"]
+        self.post(item + "/bought", check=all_checks, price="140", shipping="8.5", tax="11.88")
+        html = self.post(item + "/inspected", result="fail", notes="screen burn").data.decode()
+        self.assertIn("This phone failed your check", html)
+        self.assertIn("Decide what to do with", self.client.get("/").data.decode())
 
     def test_dismiss_and_restore(self):
         self.post("/scan")
-        self.post("/items/v1|222|0/dismiss")
+        self.post("/deals/v1|222|0/dismiss")
         self.assertTrue(self.state()["alerted"]["v1|222|0"]["dismissed"])
-        self.assertNotIn("v1|222|0", self.client.get("/opportunities").data.decode())
-        self.post("/items/v1|222|0/dismiss", undo="1")
+        self.assertNotIn("v1|222|0", self.client.get("/deals").data.decode())
+        self.post("/deals/v1|222|0/dismiss", undo="1")
         self.assertFalse(self.state()["alerted"]["v1|222|0"]["dismissed"])
 
-    def test_quote_needs_exact_spec_confirmation(self):
-        html = self.post("/settings/phones/0/quotes", quote_index="3", payout="260",
-                         quoted_on=date.today().isoformat()).data.decode()
-        self.assertIn("Confirm the quote is for this exact model", html)
-        self.post("/settings/phones/0/quotes", quote_index="3", payout="260",
-                  exact_spec="on", grading_deduction="5")
+    def test_price_needs_confirmation(self):
+        html = self.post("/prices/0", quote_index="3", payout="260").data.decode()
+        self.assertIn("Tick the box to confirm you just checked ItsWorthMore", html)
+        self.post("/prices/0", quote_index="3", payout="260", checked_today="on",
+                  grading_deduction="5")
         quote = json.loads(scanner.CONFIG_PATH.read_text())["phones"][0]["buyer_quotes"][3]
         self.assertEqual(quote["payout"], 260)
+        self.assertEqual(quote["grading_deduction"], 5)
         self.assertEqual(quote["quoted_on"], date.today().isoformat())
         self.assertEqual((quote["model"], quote["storage"]), ("iPhone 13", "128GB"))
+        self.assertIn("Checked today", self.client.get("/prices").data.decode())
+
+        self.post("/prices/0", buyer="SellCell")
+        names = [q["buyer"] for q in json.loads(scanner.CONFIG_PATH.read_text())["phones"][0]["buyer_quotes"]]
+        self.assertIn("SellCell", names)
 
     def test_add_phone_and_settings(self):
         self.post("/settings/phones", model="iPhone 14", storage="128GB", carrier="Unlocked",
-                  condition="Good", ebay_condition_ids=["3000"])
+                  condition="Good")
         phones = json.loads(scanner.CONFIG_PATH.read_text())["phones"]
         self.assertEqual(phones[1]["name"], "iPhone 14 128GB Unlocked, Good")
+        self.assertEqual(phones[1]["required_words"], ["iphone 14", "128", "unlocked"])
         self.assertEqual(len(phones[1]["buyer_quotes"]), 4)
 
         self.post("/settings/general", minimum_net_profit="75", profit_buffer="40",
@@ -145,12 +173,31 @@ class AppTest(unittest.TestCase):
         self.assertEqual((s["profit_buffer"], s["sales_tax_rate"], s["scan_hours"]), (40, 0.095, [9, 18]))
         self.assertFalse(s["auto_scan"])
 
+    def test_keys_saved_from_the_browser(self):
+        import keys
+        path = Path(self.dir.name) / "keys.json"
+        with mock.patch.object(keys, "KEYS_PATH", path), \
+                mock.patch.dict(os.environ, {"EBAY_APP_ID": "", "EBAY_CERT_ID": ""}):
+            self.post("/settings/keys", EBAY_APP_ID="my-app-id", EBAY_CERT_ID="secret-cert-9876")
+            self.assertEqual(json.loads(path.read_text())["EBAY_CERT_ID"], "secret-cert-9876")
+            self.assertEqual(os.environ["EBAY_CERT_ID"], "secret-cert-9876")
+            self.assertEqual(oct(path.stat().st_mode & 0o777), "0o600")
+            page = self.client.get("/settings").data.decode()
+            self.assertNotIn("secret-cert-9876", page)
+            self.assertIn("•••• 9876", page)
+            # Blank fields keep what's saved
+            self.post("/settings/keys", EBAY_APP_ID="", EBAY_CERT_ID="")
+            self.assertEqual(json.loads(path.read_text())["EBAY_APP_ID"], "my-app-id")
+            self.post("/settings/keys", clear=["EBAY_APP_ID", "EBAY_CERT_ID"])
+            self.assertEqual(json.loads(path.read_text()), {})
+            self.assertFalse(os.environ.get("EBAY_CERT_ID"))
+
     def test_scan_failure_is_shown(self):
         def failing(config, state, send_alerts=True):
             raise scanner.ScanError("eBay keys aren't set.")
         with mock.patch.object(scanner, "run_scan", failing):
             html = self.post("/scan").data.decode()
-        self.assertIn("Scan failed: eBay keys", html)
+        self.assertIn("The scan didn&#39;t run: eBay keys", html)
 
     def test_csrf_required(self):
         self.app.config["TESTING_NO_CSRF"] = False

@@ -1,33 +1,34 @@
 {% extends "base.html" %}
 {% import "_macros.html" as ui with context %}
-{% block title %}Inventory{% endblock %}
-{% block heading %}Inventory{% endblock %}
-{% block sub %}Bought, not yet paid{% endblock %}
+{% block title %}My Phones{% endblock %}
+{% block heading %}My Phones{% endblock %}
+{% block sub %}Phones you've bought{% endblock %}
 {% block content %}
+<div class="inline">
+  {% for key, label in [('active','In progress'),('done','Paid'),('all','All')] %}
+  <a class="btn sm" href="{{ url_for('inventory', show=key) }}" {% if show == key %}style="background:#22262B;border-color:#3A3F46" aria-current="page"{% endif %}>{{ label }}</a>
+  {% endfor %}
+</div>
 <section class="panel">
   {% if rows %}
-  <div class="tablebox">
-    <table>
-      <thead><tr><th scope="col">Device</th><th scope="col">Bought</th><th scope="col" class="r">Acq. cost</th><th scope="col">IMEI</th><th scope="col">Inspection</th><th scope="col">Buyer</th><th scope="col">Status</th><th scope="col">Next step</th></tr></thead>
-      <tbody>
+    {% if show == 'active' %}
+    <ul class="todos">
       {% for item_id, e in rows %}
-      {% set st = e.sent and 'sent' or (e.inspection and 'inspected') or 'purchased' %}
-      <tr>
-        <td><a href="{{ url_for('item', item_id=item_id) }}" style="color:#F2F4F6">{{ e.phone }}</a></td>
-        <td>{{ e.purchase.date|short }}</td>
-        <td class="r">{{ e.purchase.acquisition_cost|money }}</td>
-        <td class="mono small">{{ e.purchase.imei_result }}{% if e.purchase.imei_last4 %} ··{{ e.purchase.imei_last4 }}{% endif %}</td>
-        <td>{% if e.inspection %}{% if e.inspection.passed %}<span class="green">Passed</span>{% else %}<span class="red">Failed</span>{% endif %}{% if e.inspection.notes %} <span class="dim">· {{ e.inspection.notes }}</span>{% endif %}{% else %}<span class="amber">Pending</span>{% endif %}</td>
-        <td>{{ e.sent.buyer if e.sent else e.buyer }}</td>
-        <td>{{ ui.stage_tag(e, st) }}</td>
-        <td><a class="btn sm" href="{{ url_for('item', item_id=item_id) }}">{{ {'purchased':'Record inspection','inspected':'Mark as sent','sent':'Record payout'}[st] }}</a></td>
-      </tr>
+      {% set st = stage_of(e) %}
+      <li class="todo {{ 'warn' if st == 'inspected' and not e.inspection.passed else ('wait' if st == 'sent' else 'phone') }}">
+        <span class="mark" aria-hidden="true"></span>
+        <span class="text"><b>{% if e.spec %}{{ e.spec.model }} · {{ e.spec.storage }} · {{ e.spec.carrier }}{% else %}{{ e.phone }}{% endif %}</b>
+          <small>Bought {{ e.purchase.date|short }} for {{ e.purchase.acquisition_cost|money }} · {{ ui.stage_tag(e, st) }}</small></span>
+        <a class="btn sm" href="{{ url_for('item', item_id=item_id) }}">{{ {'purchased':'Record check','inspected':'Mark as sent' if e.inspection.passed else 'Decide','sent':'Record payment'}[st] }}</a>
+      </li>
       {% endfor %}
-      </tbody>
-    </table>
-  </div>
+    </ul>
+    {% else %}
+      {% set inventory = rows %}
+      {% include "_device_table.html" %}
+    {% endif %}
   {% else %}
-  <div class="empty">No phones in inventory.<span class="small">Record a purchase from an opportunity to start tracking it.</span></div>
+  <div class="empty">{% if show == 'active' %}No phones in progress.<span class="small">When you buy a deal, it shows up here until you're paid.</span>{% else %}Nothing here yet.{% endif %}</div>
   {% endif %}
 </section>
 {% endblock %}

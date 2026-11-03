@@ -10,43 +10,42 @@ quotes, and work 10–20 listings through by hand. The goal is to prove phones
 can be bought, verified and resold profitably, not just that listings look
 profitable on paper.
 
-## Dashboard
+## Start here
 
-```sh
-pip install -r requirements.txt
-export EBAY_APP_ID=... EBAY_CERT_ID=...   # plus alert keys if you want them
-python app.py                             # open http://127.0.0.1:8000
-```
+1. **Start it.** Double-click `start.command` on a Mac or `start.bat` on
+   Windows. The first time, it sets itself up, which takes about a minute.
+   You need Python 3 from python.org. Your browser opens SignalTrade. Leave the
+   small window that appears open while you use it.
+2. **Follow "Get set up" on the Home page:**
+   - Paste your free eBay keys in Settings and press **Test eBay**.
+   - In **Buyer Prices**, get a quote from each buyer's site, type the price,
+     tick "I just checked this price", and save.
+   - Press **Scan eBay now**.
+3. **Then just work the To do list on Home.** It always says what's next:
+   review a deal, check a phone that arrived, send it, record the payment, or
+   re-check an old price.
 
-The dashboard is the same scanner, with everything done from the browser:
+Every deal walks you through the same five steps: **Found → Bought → Checked →
+Sent → Paid**. The page shows one thing to do at a time. You can't record a
+purchase until all seven pre-purchase checks are ticked. SignalTrade never buys
+anything itself: you buy on eBay, then tell it what you paid.
 
-- **Overview:** this week's opportunities against your target, purchases,
-  inspection pass rate, and realized profit next to the estimate. Also the best
-  open deal, a comparison of all four buyers for it, and the checklist.
-- **Scan Marketplace:** run a scan, see what it found and any warnings, and
-  see which phones will be scanned and which are blocked by a missing or
-  expired quote.
-- **Opportunities:** every listing that cleared your bar. Open one to see the
-  cost breakdown, compare buyers on today's quotes, tick the pre-purchase
-  checklist and record the purchase you made yourself on eBay. Recording a
-  purchase is blocked until all seven checks are saved.
-- **Inventory:** phones bought but not yet paid, each with its next step:
-  record inspection, mark as sent, record payout.
-- **Transactions:** every purchase with estimated and actual profit.
-- **Performance Reports:** the funnel, profit trend, average profit per
-  phone, capital deployed and weekly opportunity counts.
-- **Settings:** enter and re-verify buyer quotes, add phones, and change the
-  profit rules and scan schedule.
+| Page | What it's for |
+| --- | --- |
+| Home | Setup guide, your to-do list, this week's numbers, best deals |
+| Deals | Every deal found. Open one to check it and record your purchase |
+| My Phones | Phones you've bought, and the next step for each |
+| Buyer Prices | What each buyer pays. Prices older than 7 days aren't used |
+| Results | Real profit vs estimated, and how many deals turn into payments |
+| Settings | Keys, profit target, tax rate, scan times, the phones you trade |
 
-While the app is running it also scans automatically at the hours set in
-Settings (8:00, 13:00 and 19:00 by default, local time). The sidebar shows
-the last and next scan, whether eBay keys and alerts are set up, and how many
-quotes need re-verifying.
+While SignalTrade is open it scans by itself at 8 AM, 1 PM and 7 PM (you can
+change this in Settings). Keys you paste are saved only on your computer, in
+`data/keys.json`. SignalTrade only runs on your own computer: it has no login,
+so don't put it on the internet.
 
-Every number on the dashboard comes from `config.json` and
-`data/alerted.json`, which the command line uses too, so you can mix both.
-It listens on 127.0.0.1 only. Keep it that way, or put it behind a login
-before exposing it to a network: it has no user accounts.
+To start it from a terminal instead: `pip install -r requirements.txt`, then
+`python app.py`.
 
 ## How it works
 

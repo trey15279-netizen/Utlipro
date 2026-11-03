@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% import "_macros.html" as ui with context %}
+{% block title %}Buyer Prices{% endblock %}
+{% block heading %}Buyer Prices{% endblock %}
+{% block sub %}What each buyer pays you. Prices older than {{ settings.quote_max_age_days }} days aren't used.{% endblock %}
+{% block content %}
+
+<div class="panel">
+  <div class="small muted">Open the buyer's site, get a quote for <b style="color:var(--text)">exactly</b> the phone shown (model, storage, carrier and condition), type the price here, tick the box, and save. Do this about once a week, and again right before you buy a phone.</div>
+</div>
+
+{% for p in phones %}
+{% set phone = p.phone %}
+<section class="panel" id="phone-{{ p.index }}" aria-labelledby="ph-{{ p.index }}">
+  <div class="panel-head">
+    <h2 id="ph-{{ p.index }}" style="font-size:15px;font-weight:600">{{ ui.spec_text(phone) }}</h2>
+    {% set ok = p.rows|selectattr('status', 'equalto', 'ok')|list|length %}
+    {% if ok %}<span class="tag green">{{ ok }} current price{{ 's' if ok != 1 }} · being scanned</span>{% else %}<span class="tag amber">Not being scanned · enter a price</span>{% endif %}
+  </div>
+
+  <div class="buyer-cards">
+    {% for r in p.rows %}
+    {% set q = r.quote %}
+    {% set fid = 'q-' ~ p.index ~ '-' ~ r.index %}
+    <form id="{{ fid }}" class="bcard {{ 'stale' if r.status in ('expired', 'mismatch') }}" method="post" action="{{ url_for('save_quote', index=p.index) }}">
+      {{ ui.csrf() }}<input type="hidden" name="quote_index" value="{{ r.index }}">
+      <div class="head">
+        <b>{{ r.buyer }}</b>
+        {% if r.status == 'missing' %}<span class="tag">No price yet</span>
+        {% elif r.status in ('expired', 'mismatch') %}<span class="tag amber">Check again</span>
+        {% else %}<span class="tag green">{{ r.note }}</span>{% endif %}
+      </div>
+      {% if r.status in ('expired', 'mismatch') %}<div class="small amber">{{ r.note }}</div>{% endif %}
+      {% if r.site %}<a class="btn sm" href="{{ r.site }}" target="_blank" rel="noopener">Get a quote on {{ r.buyer }} ↗</a>{% endif %}
+      <label class="field"><span>They pay</span>
+        <span class="price"><span aria-hidden="true">$</span><input type="number" step="0.01" min="0" name="payout" value="{{ '%.2f' % q.payout if q.payout is not none }}" placeholder="0.00" aria-label="What {{ r.buyer }} pays"></span></label>
+      <label class="confirm"><input type="checkbox" name="checked_today"><span>I just checked this price for {{ ui.spec_text(phone) }}</span></label>
+      <details>
+        <summary>Fees and extras</summary>
+        <div class="fields" style="margin-top:8px;grid-template-columns:repeat(2,minmax(0,1fr))">
+          <label class="field"><span>Set aside for lower grading</span><input type="number" step="0.01" min="0" name="grading_deduction" value="{{ '%.2f' % (q.grading_deduction or 0) }}"></label>
+          <label class="field"><span>Your cost to ship to them</span><input type="number" step="0.01" min="0" name="outbound_shipping" value="{{ '%.2f' % (q.outbound_shipping or 0) }}"></label>
+          <label class="field"><span>Payout fee (PayPal etc.)</span><input type="number" step="0.01" min="0" name="payout_fee" value="{{ '%.2f' % (q.payout_fee or 0) }}"></label>
+          <label class="field"><span>Checked on another day?</span><input type="date" name="quoted_on" max="{{ today }}"></label>
+          <label class="field" style="grid-column:span 2"><span>Link to this quote</span><input type="url" name="quote_url" value="{{ q.quote_url or '' }}" placeholder="https://"></label>
+        </div>
+        <div style="margin-top:8px"><button class="btn sm danger" type="submit" name="delete" value="1" formnovalidate>Remove {{ r.buyer }}</button></div>
+      </details>
+      <button class="btn primary" type="submit">Save</button>
+    </form>
+    {% endfor %}
+  </div>
+
+  <form method="post" action="{{ url_for('save_quote', index=p.index) }}" class="inline">
+    {{ ui.csrf() }}
+    <input type="text" name="buyer" placeholder="Another buyer's name" aria-label="Another buyer's name" style="width:220px" required>
+    <button class="btn sm" type="submit">Add buyer</button>
+  </form>
+</section>
+{% else %}
+<div class="empty">No phones yet. <a href="{{ url_for('settings_page') }}#add-phone">Add the phone you want to trade</a></div>
+{% endfor %}
+<p class="small dim" style="margin:0">Trade another model? <a href="{{ url_for('settings_page') }}#add-phone">Add a phone</a>.</p>
+{% endblock %}
