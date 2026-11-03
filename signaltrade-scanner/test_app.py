@@ -11,7 +11,7 @@ import scanner
 import test_scanner as t
 
 
-def fake_search(query, max_price, condition_ids=(), token=None):
+def fake_search(query, max_price, condition_ids=(), token=None, **options):
     return [t.listing(price=140, shipping=8.5, item_id="v1|111|0"),
             t.listing(price=150, shipping=0, item_id="v1|222|0")]
 
@@ -168,9 +168,9 @@ class AppTest(unittest.TestCase):
         self.post("/settings/general", minimum_net_profit="75", profit_buffer="40",
                   sales_tax_percent="9.5", unknown_shipping_estimate="15",
                   quote_max_age_days="7", min_seller_feedback_percent="98",
-                  min_seller_feedback_score="25", weekly_target="10", scan_hours="9, 18")
+                  min_seller_feedback_score="25", weekly_target="10", scan_every_minutes="30")
         s = json.loads(scanner.CONFIG_PATH.read_text())["settings"]
-        self.assertEqual((s["profit_buffer"], s["sales_tax_rate"], s["scan_hours"]), (40, 0.095, [9, 18]))
+        self.assertEqual((s["profit_buffer"], s["sales_tax_rate"], s["scan_every_minutes"]), (40, 0.095, 30))
         self.assertFalse(s["auto_scan"])
 
     def test_keys_saved_from_the_browser(self):
@@ -229,6 +229,24 @@ class AppTest(unittest.TestCase):
                 mock.patch.object(app_module.webbrowser, "open") as fallback:
             app_module.open_app_window("http://127.0.0.1:8000")
         fallback.assert_called_once_with("http://127.0.0.1:8000")
+
+    def test_scan_schedule(self):
+        import app as app_module
+        from datetime import datetime, timedelta, timezone
+        now = datetime(2026, 11, 3, 12, 0, tzinfo=timezone.utc)
+        on = {"auto_scan": True, "scan_every_minutes": 15}
+        self.assertEqual(app_module.next_scan_time(on, None, now), now)
+        last = now - timedelta(minutes=5)
+        self.assertEqual(app_module.next_scan_time(on, last, now), now + timedelta(minutes=10))
+        self.assertEqual(app_module.next_label(now + timedelta(minutes=10), now), "In 10 min")
+        self.assertEqual(app_module.next_scan_time(on, now - timedelta(hours=2), now), now)
+        self.assertIsNone(app_module.next_scan_time({**on, "auto_scan": False}, last, now))
+
+    def test_deal_page_has_seller_message_and_checks(self):
+        self.post("/scan")
+        page = self.client.get("/deals/v1|111|0").data.decode()
+        self.assertIn("Before I buy, could you please", page)
+        self.assertIn("stolenphonechecker.org", page)
 
     def test_csrf_required(self):
         self.app.config["TESTING_NO_CSRF"] = False

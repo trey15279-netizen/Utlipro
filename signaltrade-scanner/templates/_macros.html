@@ -35,7 +35,8 @@
 {% macro breakdown(e, settings) %}
 {% set b = e.breakdown %}
 <div class="lines num">
-  <div><span>Listing price</span><span>{{ b.price|money }}</span></div>
+  {% if e.offer %}<div><span>Your offer <span class="dim">(asking {{ e.offer.asking|money }})</span></span><span>{{ b.price|money }}</span></div>
+  {% else %}<div><span>Listing price</span><span>{{ b.price|money }}</span></div>{% endif %}
   <div><span>Shipping to you{% if e.shipping_known == false %} <span class="amber">· estimated</span>{% endif %}</span><span>{{ b.inbound_shipping|money }}</span></div>
   <div><span>Tax, about {{ '%g' % (settings.sales_tax_rate * 100) }}%</span><span>{{ b.sales_tax|money }}</span></div>
   <div class="total"><span>You pay about</span><span>{{ b.buy_cost|money }}</span></div>

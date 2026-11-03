@@ -53,10 +53,12 @@
       <label class="field"><span>Safety buffer on top ($)</span><input type="number" step="0.01" min="0" name="profit_buffer" value="{{ settings.profit_buffer }}" required></label>
       <label class="field"><span>Your sales tax (%)</span><input type="number" step="0.01" min="0" name="sales_tax_percent" value="{{ '%g' % (settings.sales_tax_rate * 100) }}" required></label>
       <label class="field"><span>Weekly goal (deals found)</span><input type="number" min="1" name="weekly_target" value="{{ settings.weekly_target }}" required></label>
-      <label class="field"><span>Scan at these hours</span><input type="text" name="scan_hours" value="{{ settings.scan_hours|join(', ') }}" placeholder="8, 13, 19"></label>
+      <label class="field"><span>Scan eBay every</span><select name="scan_every_minutes">
+        {% for m, label in [(15,'15 minutes'),(30,'30 minutes'),(60,'hour'),(180,'3 hours'),(360,'6 hours')] %}<option value="{{ m }}" {{ 'selected' if (settings.scan_every_minutes or 15) == m }}>{{ label }}</option>{% endfor %}
+      </select></label>
     </div>
     <label class="switch-row"><span>Scan automatically while SignalTrade is open</span><input class="switch" type="checkbox" role="switch" name="auto_scan" {{ 'checked' if settings.auto_scan }}></label>
-    <div class="small dim">Deals must make at least {{ (settings.minimum_net_profit + settings.profit_buffer)|money }} (minimum + buffer). Hours use a 24-hour clock: 13 is 1 PM.</div>
+    <div class="small dim">Deals must make at least {{ (settings.minimum_net_profit + settings.profit_buffer)|money }} (minimum + buffer). Good deals sell fast, so scanning often helps. Every 15 minutes uses well under eBay's daily limit.</div>
     <details>
       <summary>More</summary>
       <div class="fields" style="margin-top:10px">

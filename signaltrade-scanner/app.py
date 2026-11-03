@@ -176,24 +176,26 @@ def has_usable_price(config, today):
 
 # ---------- Scheduler ----------
 
-def next_scan_time(settings, now_local):
-    if not settings.get("auto_scan") or not settings.get("scan_hours"):
+def next_scan_time(settings, last_scan_at, now):
+    """When the next automatic scan is due (now if overdue), or None if off."""
+    every = int(settings.get("scan_every_minutes") or 0)
+    if not settings.get("auto_scan") or every <= 0:
         return None
-    hours = sorted(int(h) for h in settings["scan_hours"])
-    for day_offset in range(2):
-        day = now_local.date() + timedelta(days=day_offset)
-        for hour in hours:
-            slot = datetime.combine(day, datetime.min.time()).replace(hour=hour)
-            if slot > now_local:
-                return slot
-    return None
+    if last_scan_at is None:
+        return now
+    return max(now, last_scan_at + timedelta(minutes=every))
 
 
-def next_label(when):
+def next_label(when, now=None):
     if when is None:
         return None
-    day = "Today" if when.date() == date.today() else "Tomorrow"
-    return f"{day} {when.strftime('%-I:%M %p')}"
+    now = now or datetime.now(timezone.utc)
+    minutes = int((when - now).total_seconds() // 60)
+    if minutes <= 0:
+        return "Now"
+    if minutes < 60:
+        return f"In {minutes} min"
+    return when.astimezone().strftime("%-I:%M %p")
 
 
 def scan_now(send_alerts=True):
@@ -207,21 +209,19 @@ def scan_now(send_alerts=True):
             save_state(state)
 
 
+def last_scan_time(state):
+    last = (state.get("last_scan") or {}).get("at")
+    return datetime.fromisoformat(last) if last else None
+
+
 def scheduler_loop(poll_seconds=30):
-    done_slots = set()
     while True:
         try:
             config, state = load()
-            settings = config["settings"]
-            now = datetime.now()
-            slot = (now.date(), now.hour)
-            if (settings.get("auto_scan") and now.hour in [int(h) for h in settings["scan_hours"]]
-                    and slot not in done_slots):
-                last = state.get("last_scan", {}).get("at")
-                last_local = datetime.fromisoformat(last).astimezone() if last else None
-                if not (last_local and (last_local.date(), last_local.hour) == slot):
-                    scan_now()
-                done_slots.add(slot)
+            now = datetime.now(timezone.utc)
+            due = next_scan_time(config["settings"], last_scan_time(state), now)
+            if due is not None and due <= now:
+                scan_now()
         except Exception as error:  # keep the scheduler alive
             print(f"Scheduled scan error: {error}")
         time.sleep(poll_seconds)
@@ -333,7 +333,8 @@ def create_app(start_scheduler=False):
             "status": {
                 "last_scan": last,
                 "last_at": datetime.fromisoformat(last["at"]).astimezone() if last else None,
-                "next_label": next_label(next_scan_time(settings, datetime.now())),
+                "next_label": next_label(next_scan_time(
+                    settings, last_scan_time(state), datetime.now(timezone.utc))),
                 "ebay_keys": bool(os.environ.get("EBAY_ACCESS_TOKEN")
                                   or (os.environ.get("EBAY_APP_ID") and os.environ.get("EBAY_CERT_ID"))),
                 "email": ready["email"],
@@ -444,8 +445,18 @@ def create_app(start_scheduler=False):
         stage = stage_of(entry)
         comparison = comparison_for(config, entry)
         best_now = next((r for r in comparison or [] if r["status"] == "best"), None)
+        spec = entry.get("spec") or {}
+        model = " ".join(filter(None, [spec.get("model"), spec.get("storage")])) or "iPhone"
+        seller_message = (
+            f"Hi! I'm interested in your {model}. Before I buy, could you please:\n"
+            "1. Send me the IMEI (Settings > General > About)\n"
+            "2. Confirm Find My iPhone / Activation Lock is turned off\n"
+            "3. Confirm it's fully paid off, not carrier-locked, and not reported lost or stolen\n"
+            "4. Tell me the battery health and any damage or repairs\n"
+            "Thanks!")
         return render_template(
             "item.html", item_id=item_id, e=entry, stage=stage, comparison=comparison,
+            seller_message=seller_message,
             best_now=best_now, settings=config["settings"],
             complete=tracking.checklist_complete(entry),
             actual=tracking.actual_profit(entry), reduced=tracking.payout_reduced(entry),
@@ -622,10 +633,11 @@ def create_app(start_scheduler=False):
             s["min_seller_feedback_score"] = int(request.form["min_seller_feedback_score"])
             s["weekly_target"] = int(request.form["weekly_target"])
             s["auto_scan"] = request.form.get("auto_scan") == "on"
-            hours = [int(h) for h in request.form.get("scan_hours", "").replace(" ", "").split(",") if h]
-            if any(h < 0 or h > 23 for h in hours):
-                raise ValueError("Scan times must be hours from 0 to 23.")
-            s["scan_hours"] = hours
+            every = int(request.form.get("scan_every_minutes") or 15)
+            if every not in (15, 30, 60, 180, 360):
+                raise ValueError("Pick how often to scan from the list.")
+            s["scan_every_minutes"] = every
+            s.pop("scan_hours", None)
         return edit_config(apply, "Settings saved.")
 
     def phone_fields(phone):

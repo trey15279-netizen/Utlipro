@@ -17,7 +17,8 @@
     <li>
       <a href="{{ url_for('item', item_id=item_id) }}" class="deal">
         <span class="what"><b>{% if e.spec %}{{ e.spec.model }} · {{ e.spec.storage }} · {{ e.spec.carrier }} · {{ e.spec.condition }}{% else %}{{ e.phone }}{% endif %}</b>
-          <small>{{ e.breakdown.price|money if e.breakdown else '' }} on eBay · sell to {{ e.buyer }} · found {{ e.surfaced_at|short }}</small></span>
+          <small>{% if e.offer %}Offer up to {{ e.offer.max_offer|money }} (asking {{ e.offer.asking|money }}){% else %}{{ e.breakdown.price|money if e.breakdown else '' }} on eBay{% endif %} · sell to {{ e.buyer }} · found {{ e.surfaced_at|short }}</small>
+            {% if e.offer or 'cheap' in (e.flags or []) %}<span class="tags">{% if e.offer %}<span class="tag">Make offer</span>{% endif %}{% if 'cheap' in (e.flags or []) %}<span class="tag amber">Check carefully</span>{% endif %}</span>{% endif %}</span>
         {% if st != 'open' %}{{ ui.stage_tag(e, st) }}{% endif %}
         <span class="profit"><b class="green">{{ e.estimated_profit|money }}</b><small>est. profit</small></span>
         <span class="go" aria-hidden="true">›</span>

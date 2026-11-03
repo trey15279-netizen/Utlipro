@@ -3,7 +3,7 @@
 {% block title %}Scan details{% endblock %}
 {% block back %}<a class="back" href="{{ url_for('overview') }}">‹ Home</a>{% endblock %}
 {% block heading %}Scan details{% endblock %}
-{% block sub %}Buy It Now listings that could make {{ bar|money }} or more{% endblock %}
+{% block sub %}Newest Buy It Now and Best Offer listings that could make {{ bar|money }} or more{% endblock %}
 {% block actions %}
 <form method="post" action="{{ url_for('scan_page') }}" class="inline">
   {{ ui.csrf() }}

@@ -12,7 +12,13 @@
 <section class="panel next" aria-labelledby="next-h">
 {% if stage == 'open' %}
   <div class="panel-head"><h2 id="next-h">Before you buy</h2><span class="tag outline">Est. profit {{ e.estimated_profit|money }}</span></div>
-  {% if b %}<p class="muted" style="margin:0">Buy it for about <b style="color:var(--text)">{{ b.buy_cost|money }}</b> (with shipping and tax), sell it to <b style="color:var(--text)">{{ b.buyer }}</b> for <b style="color:var(--text)">{{ b.payout|money }}</b>.</p>{% endif %}
+  {% if e.offer %}
+  <div class="flash ok"><b>Make an offer.</b> It's listed at {{ e.offer.asking|money }}, which is too high. Offer up to <b>{{ e.offer.max_offer|money }}</b> on eBay and you still hit your profit target. Pay no more than that.</div>
+  {% endif %}
+  {% if 'cheap' in (e.flags or []) %}
+  <div class="flash error"><b>Unusually cheap.</b> Prices this low are often scams or locked phones. Get the IMEI and real photos before paying, and only pay through eBay checkout.</div>
+  {% endif %}
+  {% if b %}<p class="muted" style="margin:0">{{ 'Get it' if e.offer else 'Buy it' }} for about <b style="color:var(--text)">{{ b.buy_cost|money }}</b> (with shipping and tax), sell it to <b style="color:var(--text)">{{ b.buyer }}</b> for <b style="color:var(--text)">{{ b.payout|money }}</b>.</p>{% endif %}
   {% if not best_now %}
   <div class="flash error">None of the buyer prices for this phone are current any more, so this deal can't be confirmed. <a href="{{ url_for('prices') }}">Re-check the prices</a> first.</div>
   {% elif best_now.buyer != e.buyer %}
@@ -21,6 +27,27 @@
 
   <form method="post" action="{{ url_for('bought', item_id=item_id) }}" style="display:flex;flex-direction:column;gap:14px">
     {{ ui.csrf() }}
+    <div class="helper">
+      <div class="lbl">Message the seller on eBay</div>
+      <textarea id="seller-msg" readonly rows="6">{{ seller_message }}</textarea>
+      <div class="inline">
+        <button class="btn sm" type="button" id="copy-msg">Copy message</button>
+        <a class="btn sm" href="{{ e.url }}" target="_blank" rel="noopener">Open listing ↗</a>
+      </div>
+      <div class="small dim">When they send the IMEI, check it for free:
+        <a href="https://stolenphonechecker.org/" target="_blank" rel="noopener">blacklist check (CTIA)</a> ·
+        <a href="https://checkcoverage.apple.com/" target="_blank" rel="noopener">Apple coverage</a>
+      </div>
+    </div>
+    <script>
+      document.getElementById('copy-msg').addEventListener('click', async (event) => {
+        const box = document.getElementById('seller-msg');
+        try { await navigator.clipboard.writeText(box.value); event.target.textContent = 'Copied'; }
+        catch (_) { box.focus(); box.select(); event.target.textContent = 'Press Copy on your keyboard'; }
+        setTimeout(() => { event.target.textContent = 'Copy message'; }, 2500);
+      });
+    </script>
+
     <div>
       <div class="lbl" style="margin-bottom:4px">1 · Check these with the seller and the listing</div>
       {% for key, label, detail in CHECKLIST %}
@@ -30,7 +57,7 @@
     </div>
 
     <div>
-      <div class="lbl" style="margin-bottom:8px">2 · Buy it on eBay yourself, then enter what you paid</div>
+      <div class="lbl" style="margin-bottom:8px">2 · {{ 'Make your offer' if e.offer else 'Buy it' }} on eBay yourself, then enter what you paid</div>
       <div class="fields">
         <label class="field"><span>Price</span><input type="number" step="0.01" min="0" name="price" value="{{ '%.2f' % b.price if b }}"></label>
         <label class="field"><span>Shipping</span><input type="number" step="0.01" min="0" name="shipping" value="{{ '%.2f' % b.inbound_shipping if b and e.shipping_known != false }}"></label>

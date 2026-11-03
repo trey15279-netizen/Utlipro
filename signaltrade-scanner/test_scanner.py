@@ -20,8 +20,9 @@ def quote(buyer, payout, quoted_on="2026-11-01", **fields):
 
 
 def listing(title="iPhone 13 128GB Unlocked", price=100, shipping=0,
-            condition_id="3000", feedback="99.8", score=500, item_id=None):
+            condition_id="3000", feedback="99.8", score=500, item_id=None, offers=False):
     item = {
+        "buyingOptions": ["FIXED_PRICE"] + (["BEST_OFFER"] if offers else []),
         "itemId": item_id or f"v1|{title}|{price}",
         "title": title,
         "price": {"value": str(price), "currency": "USD"},
@@ -125,6 +126,31 @@ class EvaluateTest(unittest.TestCase):
         self.assertIn("$100.00 after $25 buffer", text)
 
 
+class OfferAndRiskTest(unittest.TestCase):
+    quotes = [quote("A", 300)]
+
+    def evaluate(self, item):
+        return scanner.evaluate(item, PHONE, self.quotes, SETTINGS)
+
+    def test_overpriced_best_offer_listing_gets_a_max_offer(self):
+        # At $200 asking: 300 - 220 = 80, under the 100 bar
+        self.assertIsNone(self.evaluate(listing(price=200)))
+        deal = self.evaluate(listing(price=200, offers=True))
+        # Most you can pay: (300 - 100) / 1.10 = 181.8 -> $181
+        self.assertEqual(deal["offer"], {"asking": 200, "max_offer": 181.0})
+        self.assertEqual(deal["best"]["price"], 181.0)
+        self.assertGreaterEqual(deal["best"]["net_profit"], 100)
+
+    def test_offer_too_far_below_asking_is_skipped(self):
+        # $181 would be more than 20% off $240
+        self.assertIsNone(self.evaluate(listing(price=240, offers=True)))
+
+    def test_suspiciously_cheap_listing_is_flagged(self):
+        self.assertEqual(self.evaluate(listing(price=100))["flags"], ["cheap"])  # 1/3 of payout
+        self.assertEqual(self.evaluate(listing(price=170))["flags"], [])
+        self.assertIsNone(self.evaluate(listing(price=170))["offer"])
+
+
 class ScanTest(unittest.TestCase):
     def test_scans_with_fresh_quotes_and_skips_phones_without(self):
         searched = []
@@ -139,7 +165,7 @@ class ScanTest(unittest.TestCase):
         ]}
         deals, warnings = scanner.scan(config, search=fake_search, today=TODAY)
         self.assertEqual(len(searched), 1)
-        self.assertAlmostEqual(searched[0][1], (300 - 100) / 1.10)
+        self.assertAlmostEqual(searched[0][1], (300 - 100) / 1.10 / 0.80)  # stretched for offers
         self.assertEqual([d["best"]["net_profit"] for d in deals], [190])
         self.assertIn("No quotes: no verified buyer quote, not scanned", warnings)
 

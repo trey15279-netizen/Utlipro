@@ -51,8 +51,19 @@ anything itself: you buy on eBay, then tell it what you paid.
 | Results | Real profit vs estimated, and how many deals turn into payments |
 | Settings | Keys, profit target, tax rate, scan times, the phones you trade |
 
-While SignalTrade is open it scans by itself at 8 AM, 1 PM and 7 PM (you can
-change this in Settings). Keys you paste are saved only on your computer, in
+While SignalTrade is open it scans eBay every 15 minutes (change it in
+Settings), newest listings first, US sellers only. That's well under eBay's
+daily limit. It finds three kinds of listing:
+
+- **Buy It Now deals** that already clear your profit target.
+- **Make-an-offer deals:** Best Offer listings up to 20% over your limit. It
+  tells you the most you can offer and still hit your target.
+- **"Check carefully" deals:** anything under 45% of the buyer's payout, which
+  is often a scam or a locked phone.
+
+Each deal also has a ready-to-copy message asking the seller for the IMEI,
+Activation Lock, payoff status and battery health, plus links to the free
+blacklist check (stolenphonechecker.org) and Apple's coverage check. Keys you paste are saved only on your computer, in
 `data/keys.json`. SignalTrade only runs on your own computer: it has no login,
 so don't put it on the internet.
 

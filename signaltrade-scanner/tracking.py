@@ -98,6 +98,8 @@ def record_alerted(deals, state, now=None):
             "shipping_known": deal.get("shipping_known"),
             "breakdown": best,
             "other_exits": deal.get("other_exits", []),
+            "offer": deal.get("offer"),
+            "flags": deal.get("flags", []),
             "checklist": {},
         }
 

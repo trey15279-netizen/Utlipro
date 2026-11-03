@@ -63,8 +63,13 @@ DEFAULT_SETTINGS = {
     "min_seller_feedback_score": 25,
     "weekly_target": 10,
     "auto_scan": True,
-    "scan_hours": [8, 13, 19],
+    "scan_every_minutes": 15,
+    "offer_stretch": 0.20,   # look at Best Offer listings up to this much over your max
+    "us_only": True,
 }
+
+# A deal priced below this share of the buyer's payout gets a scam warning
+SUSPICIOUSLY_CHEAP = 0.45
 
 
 class ScanError(Exception):
@@ -102,14 +107,17 @@ def get_access_token():
     return response.json()["access_token"]
 
 
-def search_ebay(query, max_price, condition_ids=(), token=None, limit=100):
+def search_ebay(query, max_price, condition_ids=(), token=None, limit=100, us_only=True):
+    """Newest Buy It Now / Best Offer listings at or under max_price."""
     filters = [
-        "buyingOptions:{FIXED_PRICE}",
+        "buyingOptions:{FIXED_PRICE|BEST_OFFER}",
         "priceCurrency:USD",
         f"price:[..{max_price:.2f}]",
     ]
     if condition_ids:
         filters.append("conditionIds:{" + "|".join(condition_ids) + "}")
+    if us_only:
+        filters.append("itemLocationCountry:US")
 
     response = requests.get(
         SEARCH_URL,
@@ -117,7 +125,7 @@ def search_ebay(query, max_price, condition_ids=(), token=None, limit=100):
             "Authorization": f"Bearer {token or get_access_token()}",
             "X-EBAY-C-MARKETPLACE-ID": "EBAY_US",
         },
-        params={"q": query, "limit": limit, "sort": "price",
+        params={"q": query, "limit": limit, "sort": "newlyListed",
                 "filter": ",".join(filters)},
         timeout=20,
     )
@@ -259,14 +267,33 @@ def evaluate(item, phone, quotes, settings):
     if not shipping_known:
         inbound = settings["unknown_shipping_estimate"]
 
-    exits = sorted(
-        (net_profit(price, inbound, q, settings) for q in quotes),
-        key=lambda e: e["net_profit"],
-        reverse=True,
-    )
+    def exits_at(paying):
+        return sorted((net_profit(paying, inbound, q, settings) for q in quotes),
+                      key=lambda e: e["net_profit"], reverse=True)
+
+    bar = required_profit(settings)
+    exits = exits_at(price)
+    offer = None
+    if exits[0]["net_profit"] < bar:
+        # Too pricey as listed. If the seller takes offers, work out the most
+        # you could offer and still hit the target, and keep it if the discount
+        # is one a seller might plausibly accept.
+        if "BEST_OFFER" not in item.get("buyingOptions", []):
+            return None
+        rate = settings["sales_tax_rate"]
+        best_take = max(quote_net(q) for q in quotes)
+        max_offer = int((best_take - bar) / (1 + rate) - inbound)
+        while max_offer > 0 and exits_at(max_offer)[0]["net_profit"] < bar:
+            max_offer -= 1  # step past tax rounding
+        if max_offer <= 0 or max_offer < price * (1 - settings["offer_stretch"]):
+            return None
+        offer = {"asking": price, "max_offer": float(max_offer)}
+        exits = exits_at(float(max_offer))
     best = exits[0]
-    if best["net_profit"] < required_profit(settings):
-        return None
+
+    flags = []
+    if price < SUSPICIOUSLY_CHEAP * best["payout"]:
+        flags.append("cheap")
 
     return {
         "item_id": item.get("itemId"),
@@ -277,6 +304,8 @@ def evaluate(item, phone, quotes, settings):
         "url": item.get("itemWebUrl"),
         "seller": item.get("seller", {}).get("username"),
         "shipping_known": shipping_known,
+        "offer": offer,
+        "flags": flags,
         "best": best,
         "other_exits": [
             {"buyer": e["buyer"], "net_profit": e["net_profit"]} for e in exits[1:]
@@ -297,19 +326,21 @@ def scan(config, search=search_ebay, today=None):
             warnings.append(f"{phone['name']}: no verified buyer quote, not scanned")
             continue
 
-        # Highest listing price that could still clear the bar with free shipping
+        # Highest listing price that could still clear the bar with free shipping,
+        # stretched so Best Offer listings a little over it are found too
         best_take = max(quote_net(q) for q in quotes)
         max_price = (best_take - required_profit(settings)) / (1 + settings["sales_tax_rate"])
         if max_price <= 0:
             warnings.append(f"{phone['name']}: no buyer pays enough to hit the target")
             continue
+        max_price /= (1 - settings["offer_stretch"])
 
         if search is search_ebay and token is None:
             token = get_access_token()
         listings = search(
             phone["query"], max_price,
             condition_ids=phone.get("ebay_condition_ids", ()),
-            **({"token": token} if token else {}),
+            **({"token": token, "us_only": settings.get("us_only", True)} if token else {}),
         )
         for item in listings:
             deal = evaluate(item, phone, quotes, settings)
@@ -362,6 +393,10 @@ def describe(deal, settings):
         f"${b['net_profit']:.2f} est. net via {b['buyer']} "
         f"(${after_buffer:.2f} after ${settings['profit_buffer']} buffer): {deal['title']}",
         f"  Quote for: {spec['model']} {spec['storage']} {spec['carrier']}, {spec['condition']}",
+        *([f"  Make an offer: up to ${deal['offer']['max_offer']:.0f} (asking ${deal['offer']['asking']:.2f})"]
+          if deal.get("offer") else []),
+        *(["  Warning: unusually cheap. Get the IMEI and photos before paying."]
+          if "cheap" in deal.get("flags", []) else []),
         f"  Buy ${b['price']:.2f} + ship {shipping} + est. tax ${b['sales_tax']:.2f} ({tax_rate:g}%)",
         f"  {b['buyer']} pays ${b['payout']:.2f} (quoted {b['quoted_on']})"
         f" - ship out ${b['outbound_shipping']:.2f} - fee ${b['payout_fee']:.2f}"
