@@ -32,7 +32,7 @@
   {% if todos %}
   <ul class="todos">
     {% for t in todos %}
-    <li class="todo {{ t.kind }}">
+    <li class="todo k-{{ t.kind }}">
       <span class="mark" aria-hidden="true"></span>
       <span class="text"><b>{{ t.text }}</b><small>{{ t.detail }}</small></span>
       <a class="btn sm {{ 'primary' if loop.first }}" href="{{ t.url }}">{{ t.action }}</a>
@@ -91,8 +91,8 @@
     <div class="panel-head"><h2 id="perf-h" class="lbl">Profit over time</h2><a class="small" href="{{ url_for('reports') }}">All results</a></div>
     {{ ui.profit_chart(chart, m) }}
     <div class="stats num">
-      <div><span class="lbl" style="font-size:10px">Avg profit per phone</span><span class="v">{{ m.avg_actual|money }}</span><span class="small dim">{% if m.paid %}estimated {{ m.avg_estimated|money }}{% else %}no payments yet{% endif %}</span></div>
-      <div><span class="lbl" style="font-size:10px">Money in phones now</span><span class="v">{{ m.capital_outstanding|money }}</span><span class="small dim">{{ m.capital_deployed|money }} spent in total</span></div>
+      <div><span class="lbl" style="font-size:12px">Avg profit per phone</span><span class="v">{{ m.avg_actual|money }}</span><span class="small dim">{% if m.paid %}estimated {{ m.avg_estimated|money }}{% else %}no payments yet{% endif %}</span></div>
+      <div><span class="lbl" style="font-size:12px">Money in phones now</span><span class="v">{{ m.capital_outstanding|money }}</span><span class="small dim">{{ m.capital_deployed|money }} spent in total</span></div>
     </div>
   </section>
 </div>

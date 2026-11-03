@@ -4,9 +4,9 @@
 {% block heading %}My Phones{% endblock %}
 {% block sub %}Phones you've bought{% endblock %}
 {% block content %}
-<div class="inline">
+<div class="segmented">
   {% for key, label in [('active','In progress'),('done','Paid'),('all','All')] %}
-  <a class="btn sm" href="{{ url_for('inventory', show=key) }}" {% if show == key %}style="background:#22262B;border-color:#3A3F46" aria-current="page"{% endif %}>{{ label }}</a>
+  <a href="{{ url_for('inventory', show=key) }}" {% if show == key %}aria-current="page"{% endif %}>{{ label }}</a>
   {% endfor %}
 </div>
 <section class="panel">
@@ -15,7 +15,7 @@
     <ul class="todos">
       {% for item_id, e in rows %}
       {% set st = stage_of(e) %}
-      <li class="todo {{ 'warn' if st == 'inspected' and not e.inspection.passed else ('wait' if st == 'sent' else 'phone') }}">
+      <li class="todo k-{{ 'warn' if st == 'inspected' and not e.inspection.passed else ('wait' if st == 'sent' else 'phone') }}">
         <span class="mark" aria-hidden="true"></span>
         <span class="text"><b>{% if e.spec %}{{ e.spec.model }} · {{ e.spec.storage }} · {{ e.spec.carrier }}{% else %}{{ e.phone }}{% endif %}</b>
           <small>Bought {{ e.purchase.date|short }} for {{ e.purchase.acquisition_cost|money }} · {{ ui.stage_tag(e, st) }}</small></span>

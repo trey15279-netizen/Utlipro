@@ -704,7 +704,7 @@ def create_app(start_scheduler=False):
     def manifest():
         return app.response_class(
             '{"name":"SignalTrade","short_name":"SignalTrade","start_url":"/","scope":"/",'
-            '"display":"standalone","background_color":"#0E0F11","theme_color":"#0E0F11",'
+            '"display":"standalone","background_color":"#1C1C1E","theme_color":"#1C1C1E",'
             '"icons":[{"src":"/static/icons/icon-192.png","sizes":"192x192","type":"image/png"},'
             '{"src":"/static/icons/icon-512.png","sizes":"512x512","type":"image/png"},'
             '{"src":"/static/icons/icon-512.png","sizes":"512x512","type":"image/png","purpose":"maskable"}]}',

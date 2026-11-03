@@ -2,14 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
 <title>{% block title %}Home{% endblock %} · SignalTrade</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
 <link rel="manifest" href="/manifest.webmanifest">
-<meta name="theme-color" content="#0E0F11">
+<meta name="theme-color" content="#1C1C1E">
 <meta name="application-name" content="SignalTrade">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="SignalTrade">
@@ -86,7 +84,7 @@
       </div>
     </header>
     {% with messages = get_flashed_messages(with_categories=true) %}
-      {% for category, message in messages %}<div class="flash {{ category }}" role="status">{{ message }}</div>{% endfor %}
+      {% if messages %}<div class="toasts">{% for category, message in messages %}<div class="flash toast {{ category }}" role="{{ 'alert' if category == 'error' else 'status' }}">{{ message }}</div>{% endfor %}</div>{% endif %}
     {% endwith %}
     {% block content %}{% endblock %}
     <footer class="dim small" style="border-top:1px solid var(--line2);padding-top:10px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap">

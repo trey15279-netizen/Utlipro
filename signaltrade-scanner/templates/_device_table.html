@@ -6,7 +6,7 @@
   {% for item_id, e in inventory %}
   {% set p = e.purchase %}
   <tr>
-    <td><a href="{{ url_for('item', item_id=item_id) }}" style="color:#F2F4F6" title="{{ e.phone }}">{% if e.spec %}{{ e.spec.model }} · {{ e.spec.storage }}{% else %}{{ e.phone }}{% endif %}</a></td>
+    <td><a href="{{ url_for('item', item_id=item_id) }}" style="color:var(--text)" title="{{ e.phone }}">{% if e.spec %}{{ e.spec.model }} · {{ e.spec.storage }}{% else %}{{ e.phone }}{% endif %}</a></td>
     <td>{{ p.date|short }}</td>
     <td class="r">{{ p.acquisition_cost|money }}</td>
     {% if not compact %}<td class="mono small" title="IMEI check: {{ p.imei_result }}">{% if p.imei_result == 'clean' %}<span class="green">✓</span>{% elif p.imei_result == 'flagged' %}<span class="red">!</span>{% else %}<span class="amber">?</span>{% endif %}{% if p.imei_last4 %} ··{{ p.imei_last4 }}{% endif %}</td>{% endif %}

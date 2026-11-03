@@ -81,23 +81,23 @@
     <span class="inline" style="gap:6px"><i aria-hidden="true" style="width:14px;border-top:2px dashed var(--dim)"></i>Estimated</span>
   </div>
   <div style="display:flex;gap:8px">
-    <div class="num dim" aria-hidden="true" style="display:flex;flex-direction:column;justify-content:space-between;font-size:10px;text-align:right;height:112px;padding-bottom:2px">
+    <div class="num dim" aria-hidden="true" style="display:flex;flex-direction:column;justify-content:space-between;font-size:11px;text-align:right;height:112px;padding-bottom:2px">
       <span>{{ chart.top|money|replace('.00','') }}</span><span>{{ (chart.top / 2)|money|replace('.00','') }}</span><span>$0</span></div>
     <svg role="img" aria-label="Cumulative profit by week. Actual realized {{ m.actual_profit|money }}; estimated for the same devices {{ m.estimated_for_paid|money }}." viewBox="0 0 320 120" preserveAspectRatio="none" style="flex:1;height:112px;display:block">
-      <line x1="0" y1="5" x2="320" y2="5" stroke="#202327" vector-effect="non-scaling-stroke"/>
-      <line x1="0" y1="60" x2="320" y2="60" stroke="#202327" vector-effect="non-scaling-stroke"/>
-      <line x1="0" y1="115" x2="320" y2="115" stroke="#2C3036" vector-effect="non-scaling-stroke"/>
-      <polyline points="{{ chart.estimated }}" fill="none" stroke="#8B929B" stroke-width="1.5" stroke-dasharray="4 3" vector-effect="non-scaling-stroke"/>
-      <polyline points="{{ chart.realized }}" fill="none" stroke="#3FB984" stroke-width="2" vector-effect="non-scaling-stroke"/>
+      <line x1="0" y1="5" x2="320" y2="5" stroke="rgba(255,255,255,.07)" vector-effect="non-scaling-stroke"/>
+      <line x1="0" y1="60" x2="320" y2="60" stroke="rgba(255,255,255,.07)" vector-effect="non-scaling-stroke"/>
+      <line x1="0" y1="115" x2="320" y2="115" stroke="rgba(255,255,255,.14)" vector-effect="non-scaling-stroke"/>
+      <polyline points="{{ chart.estimated }}" fill="none" stroke="#8E8E93" stroke-width="1.5" stroke-dasharray="4 3" vector-effect="non-scaling-stroke"/>
+      <polyline points="{{ chart.realized }}" fill="none" stroke="#30D158" stroke-width="2.5" vector-effect="non-scaling-stroke"/>
     </svg>
   </div>
-  <div class="num dim" aria-hidden="true" style="display:flex;justify-content:space-between;font-size:10px;padding-left:36px">
+  <div class="num dim" aria-hidden="true" style="display:flex;justify-content:space-between;font-size:11px;padding-left:36px">
     {% for b in chart.bars %}<span>{{ b.label }}</span>{% endfor %}</div>
 </figure>
 {% endmacro %}
 
 {% macro opp_bars(chart, m) %}
-<div style="display:flex;justify-content:space-between;align-items:baseline"><span class="lbl" style="font-size:10px">Deals found per week</span><span class="small dim">goal {{ m.weekly_target }}</span></div>
+<div style="display:flex;justify-content:space-between;align-items:baseline"><span class="lbl" style="font-size:12px">Deals found per week</span><span class="small dim">goal {{ m.weekly_target }}</span></div>
 <div class="bars" role="img" aria-label="Weekly opportunities: {% for b in chart.bars %}{{ b.label }} {{ b.count }}{{ ', ' if not loop.last }}{% endfor %}. Target {{ m.weekly_target }}.">
   <div class="t" aria-hidden="true" style="bottom:{{ chart.target_y }}px"></div>
   {% for b in chart.bars %}<div class="b {{ 'met' if b.met }}"><span>{{ b.count }}</span><i style="height:{{ [b.height, 1]|max }}px"></i></div>{% endfor %}

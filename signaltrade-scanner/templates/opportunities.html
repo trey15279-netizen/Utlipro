@@ -4,9 +4,9 @@
 {% block heading %}Deals{% endblock %}
 {% block sub %}Phones you can resell for at least {{ (settings.minimum_net_profit + settings.profit_buffer)|money }} profit{% endblock %}
 {% block content %}
-<div class="inline" role="tablist">
+<div class="segmented">
   {% for key, label in [('open','New'),('dismissed','Hidden'),('all','Everything')] %}
-  <a class="btn sm" href="{{ url_for('opportunities', show=key) }}" {% if show == key %}style="background:#22262B;border-color:#3A3F46" aria-current="page"{% endif %}>{{ label }}</a>
+  <a href="{{ url_for('opportunities', show=key) }}" {% if show == key %}aria-current="page"{% endif %}>{{ label }}</a>
   {% endfor %}
 </div>
 <section class="panel">
