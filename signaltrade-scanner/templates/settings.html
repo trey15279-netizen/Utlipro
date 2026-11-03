@@ -55,7 +55,7 @@
       <label class="field"><span>Weekly goal (deals found)</span><input type="number" min="1" name="weekly_target" value="{{ settings.weekly_target }}" required></label>
       <label class="field"><span>Scan at these hours</span><input type="text" name="scan_hours" value="{{ settings.scan_hours|join(', ') }}" placeholder="8, 13, 19"></label>
     </div>
-    <label class="inline small"><input type="checkbox" name="auto_scan" {{ 'checked' if settings.auto_scan }}> Scan automatically while SignalTrade is open</label>
+    <label class="switch-row"><span>Scan automatically while SignalTrade is open</span><input class="switch" type="checkbox" role="switch" name="auto_scan" {{ 'checked' if settings.auto_scan }}></label>
     <div class="small dim">Deals must make at least {{ (settings.minimum_net_profit + settings.profit_buffer)|money }} (minimum + buffer). Hours use a 24-hour clock: 13 is 1 PM.</div>
     <details>
       <summary>More</summary>

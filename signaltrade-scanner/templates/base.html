@@ -3,15 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="color-scheme" content="dark">
+<meta name="color-scheme" content="light dark">
 <title>{% block title %}Home{% endblock %} · SignalTrade</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
 <link rel="manifest" href="/manifest.webmanifest">
-<meta name="theme-color" content="#1C1C1E">
+<meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <meta name="application-name" content="SignalTrade">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="SignalTrade">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='icons/icon-32.png') }}">
 <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='icons/icon.svg') }}">
 <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-180.png') }}">
@@ -36,7 +37,7 @@
       {% for endpoint, label, icon, count, group in links %}
       {% set on = nav in group %}
       <a href="{{ url_for(endpoint) }}" class="{{ 'on' if on }}" {% if on %}aria-current="page"{% endif %}>
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">{{ icon|safe }}</svg>{{ label }}
+        <span class="tile {{ {'overview':'tile-blue','opportunities':'tile-green','inventory':'tile-orange','prices':'tile-teal','reports':'tile-purple','settings_page':'tile-gray'}[endpoint] }}" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">{{ icon|safe }}</svg></span><span class="label">{{ label }}</span>
         {% if count %}<span class="count {{ 'amber' if endpoint == 'prices' }}">{{ count }}</span>{% endif %}
       </a>
       {% endfor %}
