@@ -46,10 +46,10 @@ anything itself: you buy on eBay, then tell it what you paid.
 | --- | --- |
 | Home | Setup guide, your to-do list, this week's numbers, best deals |
 | Deals | Every deal found. Open one to check it and record your purchase |
-| My Phones | Phones you've bought, and the next step for each |
+| My Devices | What you've bought, and the next step for each |
 | Buyer Prices | What each buyer pays. Prices older than 7 days aren't used |
-| Results | Real profit vs estimated, and how many deals turn into payments |
-| Settings | Keys, profit target, tax rate, scan times, the phones you trade |
+| Results | Real profit vs estimated, how many deals turn into payments, and which products make money |
+| Settings | Keys, profit target, tax rate, how often to scan, and the products you trade |
 
 While SignalTrade is open it scans eBay every 15 minutes (change it in
 Settings), newest listings first, US sellers only. That's well under eBay's
@@ -60,6 +60,13 @@ daily limit. It finds three kinds of listing:
   tells you the most you can offer and still hit your target.
 - **"Check carefully" deals:** anything under 45% of the buyer's payout, which
   is often a scam or a locked phone.
+
+**Products:** iPhones, iPads, Samsung Galaxy S phones and Apple Watches. In
+Settings → Products you trade, pick the type and model, tick the sizes you want
+and press Add. Search words and the eBay category are filled in so similar
+models (Pro, Max, Plus, Ultra, older iPad generations, Cellular vs Wi-Fi) are
+skipped. Each product needs its own buyer prices, so start with 5–10. Results
+shows which ones actually make money.
 
 Each deal also has a ready-to-copy message asking the seller for the IMEI,
 Activation Lock, payoff status and battery health, plus links to the free

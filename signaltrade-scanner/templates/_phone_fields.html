@@ -1,15 +1,17 @@
 {# expects `spec_phone` and `conditions` #}
+{% set pinfo = product_info(spec_phone) %}
+<input type="hidden" name="category" value="{{ spec_phone.category or 'iphone' }}">
 <div class="fields">
   <label class="field"><span>Model</span><input type="text" name="model" value="{{ spec_phone.model or '' }}" placeholder="iPhone 13" required></label>
-  <label class="field"><span>Storage</span><input type="text" name="storage" value="{{ spec_phone.storage or '' }}" placeholder="128GB" required></label>
-  <label class="field"><span>Carrier</span><input type="text" name="carrier" value="{{ spec_phone.carrier or '' }}" placeholder="Unlocked" required></label>
+  <label class="field"><span>{{ pinfo.storage_label }}</span><input type="text" name="storage" value="{{ spec_phone.storage or '' }}" placeholder="128GB" required></label>
+  <label class="field"><span>{{ pinfo.carrier_label }}</span><input type="text" name="carrier" value="{{ spec_phone.carrier or '' }}" placeholder="Unlocked" required></label>
   <label class="field"><span>Condition you'll sell it as</span><input type="text" name="condition" value="{{ spec_phone.condition or '' }}" placeholder="Good" required></label>
 </div>
 <details>
   <summary>Search options</summary>
   <div style="display:flex;flex-direction:column;gap:12px;margin-top:10px">
     <div class="fields">
-      <label class="field" style="grid-column:span 2"><span>eBay search words</span><input type="text" name="query" value="{{ spec_phone.query or '' }}" placeholder="Model, storage and carrier"></label>
+      <label class="field" style="grid-column:span 2"><span>eBay search words</span><input type="text" name="query" value="{{ spec_phone.query or '' }}" placeholder="Filled in for you"></label>
       <label class="field" style="grid-column:span 2"><span>Listing title must include (commas between)</span><input type="text" name="required_words" value="{{ (spec_phone.required_words or [])|join(', ') }}" placeholder="Model, storage and carrier"></label>
       <label class="field" style="grid-column:span 2"><span>Skip listings whose title has</span><input type="text" name="excluded_words" value="{{ (spec_phone.excluded_words or [])|join(', ') }}" placeholder="mini, pro, max"></label>
     </div>

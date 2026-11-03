@@ -26,6 +26,7 @@ from flask import (Flask, abort, flash, redirect, render_template, request,
 
 import alerts
 import keys
+import products
 import scanner
 import tracking
 
@@ -445,18 +446,11 @@ def create_app(start_scheduler=False):
         stage = stage_of(entry)
         comparison = comparison_for(config, entry)
         best_now = next((r for r in comparison or [] if r["status"] == "best"), None)
-        spec = entry.get("spec") or {}
-        model = " ".join(filter(None, [spec.get("model"), spec.get("storage")])) or "iPhone"
-        seller_message = (
-            f"Hi! I'm interested in your {model}. Before I buy, could you please:\n"
-            "1. Send me the IMEI (Settings > General > About)\n"
-            "2. Confirm Find My iPhone / Activation Lock is turned off\n"
-            "3. Confirm it's fully paid off, not carrier-locked, and not reported lost or stolen\n"
-            "4. Tell me the battery health and any damage or repairs\n"
-            "Thanks!")
+        product = {**(entry.get("spec") or {}), "category": entry.get("category")}
         return render_template(
             "item.html", item_id=item_id, e=entry, stage=stage, comparison=comparison,
-            seller_message=seller_message,
+            seller_message=products.seller_message(product),
+            checklist=products.checklist(product),
             best_now=best_now, settings=config["settings"],
             complete=tracking.checklist_complete(entry),
             actual=tracking.actual_profit(entry), reduced=tracking.payout_reduced(entry),
@@ -556,11 +550,16 @@ def create_app(start_scheduler=False):
     @app.get("/prices")
     def prices():
         config, _ = load()
-        phones = [{"index": i, "phone": p,
-                   "rows": quote_rows(p, config["settings"], date.today())}
-                  for i, p in enumerate(config["phones"])]
+        phones = []
+        for i, p in enumerate(config["phones"]):
+            rows = quote_rows(p, config["settings"], date.today())
+            phones.append({"index": i, "phone": p, "rows": rows,
+                           "current": sum(1 for r in rows if r["status"] == "ok"),
+                           "attention": any(r["status"] in ("expired", "mismatch", "missing") for r in rows),
+                           "label": products.info(p)["label"]})
+        open_index = request.args.get("open", type=int)
         return render_template("prices.html", phones=phones, settings=config["settings"],
-                               today=date.today().isoformat())
+                               today=date.today().isoformat(), open_index=open_index)
 
     def edit_config(fn, message, back=None):
         with LOCK:
@@ -571,12 +570,12 @@ def create_app(start_scheduler=False):
                 flash(str(error) or "That value isn't valid.", "error")
             else:
                 save_config(config)
-                flash(message, "ok")
+                flash(message() if callable(message) else message, "ok")
         return redirect(back or request.form.get("next") or url_for("settings_page"))
 
     @app.post("/prices/<int:index>")
     def save_quote(index):
-        back = url_for("prices") + f"#phone-{index}"
+        back = url_for("prices", open=index) + f"#phone-{index}"
 
         def apply(config):
             phone = config["phones"][index]
@@ -618,7 +617,9 @@ def create_app(start_scheduler=False):
     def settings_page():
         config, _ = load()
         return render_template("settings.html", settings=config["settings"],
-                               phones=list(enumerate(config["phones"])))
+                               phones=list(enumerate(config["phones"])),
+                               categories=products.CATEGORIES, grades=products.CONDITIONS,
+                               product_info=products.info)
 
     @app.post("/settings/general")
     def settings_general():
@@ -641,6 +642,9 @@ def create_app(start_scheduler=False):
         return edit_config(apply, "Settings saved.")
 
     def phone_fields(phone):
+        category = request.form.get("category") or phone.get("category") or "iphone"
+        phone["category"] = category if category in products.CATEGORIES else "iphone"
+        phone["ebay_category_ids"] = [products.info(phone)["ebay_category"]]
         for field in ("model", "storage", "carrier", "condition"):
             value = (request.form.get(field) or "").strip()
             if not value:
@@ -650,22 +654,34 @@ def create_app(start_scheduler=False):
         phone["query"] = (request.form.get("query") or "").strip() or \
             f"{phone['model']} {phone['storage']} {phone['carrier']}"
         words = lambda key: [w.strip() for w in (request.form.get(key) or "").split(",") if w.strip()]
-        required = words("required_words")
-        phone["required_words"] = required or [phone["model"].lower(),
-                                               phone["storage"].lower().replace("gb", ""),
-                                               phone["carrier"].lower()]
-        phone["excluded_words"] = words("excluded_words")
+        auto_required, auto_excluded = products.search_words(
+            phone["category"], phone["model"], phone["storage"], phone["carrier"])
+        phone["required_words"] = words("required_words") or auto_required
+        phone["excluded_words"] = words("excluded_words") or auto_excluded
         phone["ebay_condition_ids"] = request.form.getlist("ebay_condition_ids") or ["3000"]
 
     @app.post("/settings/phones")
     def add_phone():
+        added = []
+
         def apply(config):
-            phone = {}
-            phone_fields(phone)
-            phone["buyer_quotes"] = [{"buyer": b, "payout": None} for b in BUYER_SITES]
-            config["phones"].append(phone)
-        return edit_config(apply, "Phone added. Now enter today's buyer prices for it.",
-                           back=url_for("prices"))
+            category = request.form.get("category") or "iphone"
+            sizes = request.form.getlist("storages") or [request.form.get("storage", "")]
+            existing = {p["name"] for p in config["phones"]}
+            for size in sizes:
+                product = products.build(category, request.form.get("model", ""), size,
+                                         request.form.get("carrier", ""),
+                                         request.form.get("condition", ""))
+                if product["name"] not in existing:
+                    config["phones"].append(product)
+                    existing.add(product["name"])
+                    added.append(product["name"])
+            if not added:
+                raise ValueError("You already have that product.")
+        return edit_config(
+            apply, lambda: f"Added {len(added)} product{'s' if len(added) != 1 else ''}. "
+                           "Now enter today's buyer prices.",
+            back=url_for("prices"))
 
     @app.post("/settings/phones/<int:index>")
     def edit_phone(index):

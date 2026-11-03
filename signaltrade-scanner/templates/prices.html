@@ -9,14 +9,13 @@
   <div class="small muted">Open the buyer's site, get a quote for <b style="color:var(--text)">exactly</b> the phone shown (model, storage, carrier and condition), type the price here, tick the box, and save. Do this about once a week, and again right before you buy a phone.</div>
 </div>
 
-{% for p in phones %}
+{% for p in phones|sort(attribute='current') %}
 {% set phone = p.phone %}
-<section class="panel" id="phone-{{ p.index }}" aria-labelledby="ph-{{ p.index }}">
-  <div class="panel-head">
-    <h2 id="ph-{{ p.index }}" style="font-size:15px;font-weight:600">{{ ui.spec_text(phone) }}</h2>
-    {% set ok = p.rows|selectattr('status', 'equalto', 'ok')|list|length %}
-    {% if ok %}<span class="tag green">{{ ok }} current price{{ 's' if ok != 1 }} · being scanned</span>{% else %}<span class="tag amber">Not being scanned · enter a price</span>{% endif %}
-  </div>
+<details class="panel product" id="phone-{{ p.index }}" {{ 'open' if (open_index == p.index) or (open_index is none and p.attention and loop.index <= 3) }}>
+  <summary class="product-head">
+    <span class="what"><b>{{ ui.spec_text(phone) }}</b><small>{{ p.label }}</small></span>
+    {% if p.current %}<span class="tag green">{{ p.current }} current</span>{% else %}<span class="tag amber">Needs prices</span>{% endif %}
+  </summary>
 
   <div class="buyer-cards">
     {% for r in p.rows %}
@@ -56,9 +55,9 @@
     <input type="text" name="buyer" placeholder="Another buyer's name" aria-label="Another buyer's name" style="width:220px" required>
     <button class="btn sm" type="submit">Add buyer</button>
   </form>
-</section>
+</details>
 {% else %}
-<div class="empty">No phones yet. <a href="{{ url_for('settings_page') }}#add-phone">Add the phone you want to trade</a></div>
+<div class="empty">No products yet. <a href="{{ url_for('settings_page') }}#add-phone">Add what you want to trade</a></div>
 {% endfor %}
-<p class="small dim" style="margin:0">Trade another model? <a href="{{ url_for('settings_page') }}#add-phone">Add a phone</a>.</p>
+<p class="small dim" style="margin:0">Trade more models? <a href="{{ url_for('settings_page') }}#add-phone">Add products</a>. Products that need prices are listed first.</p>
 {% endblock %}

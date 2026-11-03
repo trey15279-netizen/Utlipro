@@ -73,26 +73,67 @@
 </section>
 
 <section class="panel" aria-labelledby="phones-h">
-  <div class="panel-head"><h2 id="phones-h" style="font-size:15px;font-weight:600">Phones you trade</h2></div>
-  {% for index, phone in phones %}
-  <details style="border-top:1px solid var(--line2);padding-top:10px">
-    <summary><b style="color:var(--text)">{{ ui.spec_text(phone) }}</b></summary>
+  <div class="panel-head"><h2 id="phones-h" style="font-size:15px;font-weight:600">Products you trade</h2>
+    <span class="small dim">{{ phones|length }} product{{ 's' if phones|length != 1 }} · each needs its own buyer prices</span></div>
+
+  <form id="add-phone" class="helper" method="post" action="{{ url_for('add_phone') }}">
+    {{ ui.csrf() }}
+    <div class="lbl">Add products</div>
+    <div class="fields">
+      <label class="field"><span>Type</span>
+        <select name="category" id="qa-category">
+          {% for key, c in categories.items() %}<option value="{{ key }}">{{ c.label }}</option>{% endfor %}
+        </select></label>
+      <label class="field" style="grid-column:span 2"><span>Model</span>
+        <input type="text" name="model" id="qa-model" list="qa-models" required placeholder="Start typing, e.g. iPhone 14 Pro"></label>
+      <label class="field"><span id="qa-carrier-label">Carrier</span>
+        <select name="carrier" id="qa-carrier">{% for c in categories.iphone.carriers %}<option>{{ c }}</option>{% endfor %}</select></label>
+      <label class="field"><span>Condition you'll sell it as</span>
+        <select name="condition">{% for c in grades %}<option {{ 'selected' if c == 'Good' }}>{{ c }}</option>{% endfor %}</select></label>
+    </div>
+    <datalist id="qa-models">{% for m in categories.iphone.models %}<option value="{{ m }}"></option>{% endfor %}</datalist>
+    <fieldset style="border:0;padding:0;margin:0">
+      <legend class="small dim" id="qa-storage-label" style="margin-bottom:6px">Storage: tick every size you want to trade</legend>
+      <div class="inline" id="qa-storages" style="gap:16px">
+        {% for st in categories.iphone.storages %}<label class="inline small"><input type="checkbox" name="storages" value="{{ st }}" {{ 'checked' if st == '128GB' }}>{{ st }}</label>{% endfor %}
+      </div>
+    </fieldset>
+    <div><button class="btn primary" type="submit">Add</button></div>
+    <div class="small dim">Search words and the eBay category are filled in for you, so similar models (Pro, Max, Plus, older generations) are skipped.</div>
+  </form>
+  <script>
+    (() => {
+      const cats = {{ categories|tojson }};
+      const pick = document.getElementById('qa-category');
+      const fill = () => {
+        const c = cats[pick.value];
+        document.getElementById('qa-models').innerHTML = c.models.map(m => `<option value="${m}"></option>`).join('');
+        document.getElementById('qa-carrier').innerHTML = c.carriers.map(x => `<option>${x}</option>`).join('');
+        document.getElementById('qa-carrier-label').textContent = c.carrier_label;
+        document.getElementById('qa-storage-label').textContent = c.storage_label + ': tick every size you want to trade';
+        document.getElementById('qa-storages').innerHTML = c.storages.map((x, i) =>
+          `<label class="inline small"><input type="checkbox" name="storages" value="${x}" ${i === 1 ? 'checked' : ''}>${x}</label>`).join('');
+        document.getElementById('qa-model').value = '';
+        document.getElementById('qa-model').placeholder = 'Start typing, e.g. ' + c.models[Math.min(4, c.models.length - 1)];
+      };
+      pick.addEventListener('change', fill);
+    })();
+  </script>
+
+  {% for group in phones|groupby('1.category', default='iphone') %}
+  <div class="lbl" style="margin-top:6px">{{ categories[group.grouper or 'iphone'].label if (group.grouper or 'iphone') in categories else 'Other' }}</div>
+  {% for index, phone in group.list %}
+  <details style="border-top:.5px solid var(--line);padding-top:10px">
+    <summary><span style="color:var(--text)">{{ ui.spec_text(phone) }}</span></summary>
     <form method="post" action="{{ url_for('edit_phone', index=index) }}" style="display:flex;flex-direction:column;gap:12px;margin-top:12px">
       {{ ui.csrf() }}
       {% set spec_phone = phone %}{% include "_phone_fields.html" %}
-      <div class="small amber">Changing model, storage, carrier or condition means you'll need to re-check its buyer prices.</div>
+      <div class="small amber">Changing model, size, carrier or condition means you'll need to re-check its buyer prices.</div>
       <div class="inline"><button class="btn" type="submit">Save</button>
-        <button class="btn danger" type="submit" name="delete" value="1" formnovalidate>Delete this phone</button></div>
+        <button class="btn danger" type="submit" name="delete" value="1" formnovalidate>Delete</button></div>
     </form>
   </details>
   {% endfor %}
-  <details id="add-phone" style="border-top:1px solid var(--line2);padding-top:10px" {{ 'open' if not phones }}>
-    <summary><b style="color:var(--green-t)">+ Add a phone</b></summary>
-    <form method="post" action="{{ url_for('add_phone') }}" style="display:flex;flex-direction:column;gap:12px;margin-top:12px">
-      {{ ui.csrf() }}
-      {% set spec_phone = {'ebay_condition_ids': ['2010','2020','3000']} %}{% include "_phone_fields.html" %}
-      <div><button class="btn primary" type="submit">Add phone</button></div>
-    </form>
-  </details>
+  {% endfor %}
 </section>
 {% endblock %}

@@ -26,9 +26,25 @@
       <div><span>Sent to a buyer</span><span>{{ m.sent }}</span></div>
       <div><span>Paid</span><span>{{ m.paid }} ({{ m.paid_full }} in full, {{ m.paid_reduced }} paid less)</span></div>
     </div>
-    <div class="stats">{{ ui.opp_bars(chart, m) }}</div>
+    <div class="stats"><div style="grid-column:span 2">{{ ui.opp_bars(chart, m) }}</div></div>
     <div class="small dim">Last 7 days: {{ m.opportunities_7d }} deals found. Your goal is {{ m.weekly_target }}.</div>
   </section>
 </div>
+<section class="panel" aria-labelledby="prod-h">
+  <div class="panel-head"><h2 id="prod-h" class="lbl">By product</h2><span class="small dim">Which models make money</span></div>
+  {% if m.by_product %}
+  <div class="tablebox"><table>
+    <thead><tr><th scope="col">Product</th><th scope="col" class="r">Deals found</th><th scope="col" class="r">Bought</th><th scope="col" class="r">Paid</th><th scope="col" class="r">Real profit</th><th scope="col" class="r">Per phone</th><th scope="col" class="r">Estimated</th></tr></thead>
+    <tbody>
+    {% for r in m.by_product %}
+      <tr><td>{{ r.product }}</td><td class="r">{{ r.found }}</td><td class="r">{{ r.bought }}</td><td class="r">{{ r.paid }}</td>
+        <td class="r {{ 'green' if r.actual > 0 else ('red' if r.actual < 0 else '') }}" style="font-weight:600">{{ r.actual|money if r.paid else '—' }}</td>
+        <td class="r">{{ r.avg|money }}</td><td class="r dim">{{ r.estimated|money if r.paid else '—' }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  <div class="small dim">Drop models that rarely show up or keep paying less than estimated. That saves you re-checking their prices every week.</div>
+  {% else %}<div class="empty">Nothing yet.<span class="small">Each product's results show here once deals come in.</span></div>{% endif %}
+</section>
 <p class="small dim" style="margin:0">If real profit keeps coming in under the estimate, raise a buyer's “set aside for lower grading” in Buyer Prices, or the safety buffer in Settings.</p>
 {% endblock %}

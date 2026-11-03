@@ -94,6 +94,7 @@ def record_alerted(deals, state, now=None):
             "expected_payout": round(best["payout"] - best["payout_fee"], 2),
             "estimated_profit": best["net_profit"],
             "spec": deal.get("spec"),
+            "category": deal.get("category", "iphone"),
             "ebay_condition": deal.get("ebay_condition"),
             "shipping_known": deal.get("shipping_known"),
             "breakdown": best,
@@ -337,7 +338,24 @@ def metrics(state, weekly_target, now=None, weeks=6):
         realized_cum.append(round(sum(actual_profit(e) for e in upto), 2))
         estimated_cum.append(round(sum(e["estimated_profit"] for e in upto), 2))
 
+    # Which products actually make money
+    by_product = {}
+    for e in entries:
+        row = by_product.setdefault(e["phone"], {"product": e["phone"], "found": 0, "bought": 0,
+                                                 "paid": 0, "actual": 0.0, "estimated": 0.0})
+        row["found"] += 1
+        if "purchase" in e:
+            row["bought"] += 1
+        if "payout" in e:
+            row["paid"] += 1
+            row["actual"] = round(row["actual"] + actual_profit(e), 2)
+            row["estimated"] = round(row["estimated"] + e["estimated_profit"], 2)
+    for row in by_product.values():
+        row["avg"] = round(row["actual"] / row["paid"], 2) if row["paid"] else None
+    products = sorted(by_product.values(), key=lambda r: (r["actual"], r["found"]), reverse=True)
+
     return {
+        "by_product": products,
         "opportunities_7d": sum(
             1 for e in entries if datetime.fromisoformat(e["surfaced_at"]) >= since),
         "weekly_target": weekly_target,

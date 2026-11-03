@@ -7,7 +7,8 @@
     "quote_max_age_days": 7,
     "min_seller_feedback_percent": 98.0,
     "min_seller_feedback_score": 25,
-    "weekly_target": 10
+    "weekly_target": 10,
+    "scan_every_minutes": 15
   },
   "phones": [
     {
@@ -85,6 +86,10 @@
           "quoted_on": null,
           "quote_url": ""
         }
+      ],
+      "category": "iphone",
+      "ebay_category_ids": [
+        "9355"
       ]
     }
   ]

@@ -230,6 +230,23 @@ class AppTest(unittest.TestCase):
             app_module.open_app_window("http://127.0.0.1:8000")
         fallback.assert_called_once_with("http://127.0.0.1:8000")
 
+    def test_quick_add_several_sizes(self):
+        self.post("/settings/phones", category="ipad", model="iPad (10th generation)",
+                  storages=["64GB", "256GB"], carrier="Wi-Fi", condition="Good")
+        phones = json.loads(scanner.CONFIG_PATH.read_text())["phones"]
+        names = [p["name"] for p in phones]
+        self.assertIn("iPad (10th generation) 64GB Wi-Fi, Good", names)
+        self.assertIn("iPad (10th generation) 256GB Wi-Fi, Good", names)
+        self.assertEqual(phones[-1]["category"], "ipad")
+        html = self.post("/settings/phones", category="ipad", model="iPad (10th generation)",
+                         storages=["64GB"], carrier="Wi-Fi", condition="Good").data.decode()
+        self.assertIn("You already have that product", html)
+        self.assertIn("iPad (10th generation)", self.client.get("/prices").data.decode())
+        # The original product has no saved type; Settings must still group it
+        page = self.client.get("/settings").data.decode()
+        self.assertIn("<option selected>Good</option>", page)
+        self.assertNotIn("Excellent - Refurbished')", page)
+
     def test_scan_schedule(self):
         import app as app_module
         from datetime import datetime, timedelta, timezone

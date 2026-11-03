@@ -47,6 +47,7 @@ BAD_WORDS = (
     "financed", "balance owed", "unpaid balance", "locked to",
     "box only", "empty box", "read description", "as is", "no power",
     "lcd issue", "screen burn", "face id not", "replica", "clone",
+    "frp", "google locked", "account locked", "mdm", "bypass",
 )
 FOR_PARTS_CONDITION_ID = "7000"
 
@@ -107,7 +108,8 @@ def get_access_token():
     return response.json()["access_token"]
 
 
-def search_ebay(query, max_price, condition_ids=(), token=None, limit=100, us_only=True):
+def search_ebay(query, max_price, condition_ids=(), token=None, limit=100, us_only=True,
+                category_ids=()):
     """Newest Buy It Now / Best Offer listings at or under max_price."""
     filters = [
         "buyingOptions:{FIXED_PRICE|BEST_OFFER}",
@@ -118,6 +120,7 @@ def search_ebay(query, max_price, condition_ids=(), token=None, limit=100, us_on
         filters.append("conditionIds:{" + "|".join(condition_ids) + "}")
     if us_only:
         filters.append("itemLocationCountry:US")
+    params_extra = {"category_ids": ",".join(category_ids)} if category_ids else {}
 
     response = requests.get(
         SEARCH_URL,
@@ -126,7 +129,7 @@ def search_ebay(query, max_price, condition_ids=(), token=None, limit=100, us_on
             "X-EBAY-C-MARKETPLACE-ID": "EBAY_US",
         },
         params={"q": query, "limit": limit, "sort": "newlyListed",
-                "filter": ",".join(filters)},
+                "filter": ",".join(filters), **params_extra},
         timeout=20,
     )
     response.raise_for_status()
@@ -298,6 +301,7 @@ def evaluate(item, phone, quotes, settings):
     return {
         "item_id": item.get("itemId"),
         "phone": phone["name"],
+        "category": phone.get("category", "iphone"),
         "spec": {field: phone[field] for field in QUOTE_SPEC},
         "title": item.get("title", ""),
         "ebay_condition": item.get("condition"),
@@ -340,7 +344,8 @@ def scan(config, search=search_ebay, today=None):
         listings = search(
             phone["query"], max_price,
             condition_ids=phone.get("ebay_condition_ids", ()),
-            **({"token": token, "us_only": settings.get("us_only", True)} if token else {}),
+            **({"token": token, "us_only": settings.get("us_only", True),
+                "category_ids": phone.get("ebay_category_ids", ())} if token else {}),
         )
         for item in listings:
             deal = evaluate(item, phone, quotes, settings)
