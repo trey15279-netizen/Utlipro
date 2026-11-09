@@ -17,38 +17,16 @@
   const $screen = document.getElementById("screen");
   const $bar = document.getElementById("actionbar");
 
-  // ---------- Icons (inline SVG, drawn with currentColor) ----------
-  const ICONS = {
-    key: '<circle cx="8" cy="15" r="4"/><path d="M10.8 12.2 20 3M17 6l3 3M14 9l2 2"/>',
-    hook: '<path d="M15 3v10a6 6 0 0 1-12 0V9l4 4"/><circle cx="15" cy="3" r="1"/>',
-    lock: '<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4M12 15v2"/>',
-    database: '<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>',
-    bot: '<rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 8V5M9 13v1M15 13v1M9 17h6"/><circle cx="12" cy="4" r="1"/>',
-    mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
-    globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',
-    wifi: '<path d="M2 9a15 15 0 0 1 20 0M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0"/><circle cx="12" cy="19.5" r="1"/>',
-    phone: '<rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/>',
-    bank: '<path d="M3 10 12 4l9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 21h18"/>',
-    shield: '<path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6z"/><path d="m9 12 2 2 4-4"/>',
-    alert: '<path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17v.5"/>',
-    check: '<path d="m5 12 5 5L20 7"/>',
-    x: '<path d="M6 6l12 12M18 6 6 18"/>',
-    keyboard: '<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/>',
-    code: '<path d="m8 7-5 5 5 5M16 7l5 5-5 5"/>',
-    flag: '<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>',
-    cup: '<path d="M4 8h13v5a6 6 0 0 1-12 0zM17 9h1.5a2.5 2.5 0 0 1 0 5H17M8 3v2M12 3v2"/>',
-    leak: '<path d="M12 2v4M12 18v4M2 12h4M18 12h4M5 5l3 3M16 16l3 3M5 19l3-3M16 8l3-3"/>',
-    eye: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
-    pencil: '<path d="M4 20h4L19 9l-4-4L4 16z"/>',
-    back: '<path d="m15 5-7 7 7 7"/>',
-    home: '<path d="M3 11 12 3l9 8M5 9.5V21h14V9.5"/>',
-    book: '<path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2zM4 21V5"/>',
-    help: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.7v.5M12 17v.5"/>',
-    trophy: '<path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H4a3 3 0 0 0 4 4M16 6h4a3 3 0 0 1-4 4M12 13v4M8 21h8M9 17h6"/>',
-    save: '<path d="M5 3h11l3 3v15H5z"/><path d="M8 3v5h7V3M8 21v-7h8v7"/>',
-    arrow: '<path d="M5 12h14M13 6l6 6-6 6"/>'
+  // ---------- Icons (Material Symbols font, loaded with the page) ----------
+  const SYMBOLS = {
+    key: "key", hook: "phishing", lock: "lock", database: "database", bot: "smart_toy", mail: "mail",
+    globe: "language", wifi: "wifi", phone: "smartphone", bank: "account_balance", shield: "verified_user",
+    alert: "warning", check: "check", x: "close", keyboard: "keyboard", code: "code", flag: "flag",
+    cup: "local_cafe", leak: "crisis_alert", eye: "visibility", pencil: "edit", back: "arrow_back",
+    home: "home", book: "menu_book", help: "quiz", trophy: "emoji_events", save: "cloud_done",
+    arrow: "arrow_forward", lab: "science", tap: "touch_app"
   };
-  const icon = (name, cls) => '<svg class="icon ' + (cls || "") + '" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + (ICONS[name] || ICONS.help) + "</svg>";
+  const icon = (name, cls) => '<span class="icon msr ' + (cls || "") + '" aria-hidden="true">' + (SYMBOLS[name] || "help") + "</span>";
 
   // ---------- Saved progress (automatic, on this device) ----------
   // { lessons: { [id]: { step, done, best, answers: { [qIndex]: choice } } }, finishedAt, name }
@@ -126,7 +104,7 @@
         (opts.home ? '<a class="home-link" href="#home">' + icon("home") + "<span>Home</span></a>" : '<span class="home-link"></span>') +
         "</div>";
     } else {
-      html += '<div class="topbar-row"><a class="brand" href="#home"><span class="brand-mark">' + icon("shield") + "</span>Security Lab</a>" +
+      html += '<div class="topbar-row"><a class="brand" href="#home"><span class="brand-mark">' + icon("shield", "fill") + "</span>Security Lab</a>" +
         '<span class="brand-progress">' + doneCount() + "/" + LESSONS.length + " done</span></div>";
     }
     if (opts.segments) {
@@ -141,7 +119,7 @@
   // The bottom bar: one big primary button (and, rarely, one quiet secondary link).
   function actionbar(primary, secondary, hint) {
     let html = '<div class="actionbar-inner">';
-    if (hint) html += '<p class="action-hint">' + icon("arrow", "hint-icon") + esc(hint) + "</p>";
+    if (hint) html += '<p class="action-hint">' + icon("tap") + esc(hint) + "</p>";
     if (primary) html += '<button type="button" class="btn-primary" id="primary"><span>' + esc(primary.label) + "</span>" + icon("arrow") + "</button>";
     if (secondary) html += '<button type="button" class="btn-secondary" id="secondary">' + esc(secondary.label) + "</button>";
     $bar.innerHTML = html + "</div>";
@@ -213,7 +191,7 @@
 
   const LABS = {
     password: {
-      html: () => '<p class="lab-tag">' + icon("bot") + "Live lab</p>" +
+      html: () => '<p class="lab-tag">' + icon("lab") + "Live lab</p>" +
         '<div class="chips">' + ["sunshine", "Sunsh1ne!", "purple-tiger-river-lamp"].map((e) => '<button type="button" class="chip" data-ex="' + esc(e) + '"><code>' + esc(e) + "</code></button>").join("") + "</div>" +
         '<label class="lab-label" for="pw-input">Or type a made-up one</label>' +
         '<input id="pw-input" class="lab-input" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Type a made-up password" />' +
@@ -278,7 +256,7 @@
     },
 
     https: {
-      html: () => '<p class="lab-tag">' + icon("eye") + "Live lab</p>" +
+      html: () => '<p class="lab-tag">' + icon("lab") + "Live lab</p>" +
         '<div class="toggle" role="group" aria-label="Connection type">' +
         '<button type="button" class="toggle-btn" data-mode="http" aria-pressed="true">http://</button>' +
         '<button type="button" class="toggle-btn" data-mode="https" aria-pressed="false">' + icon("lock") + "https://</button></div>" +
@@ -312,7 +290,7 @@
     },
 
     sql: {
-      html: () => '<p class="lab-tag">' + icon("code") + "Live lab</p>" +
+      html: () => '<p class="lab-tag">' + icon("lab") + "Live lab</p>" +
         '<div class="chips">' + [["Normal name", "alice"], ["The trick", "' OR '1'='1"]].map((e) =>
           '<button type="button" class="chip" data-ex="' + esc(e[1]) + '">' + esc(e[0]) + ": <code>" + esc(e[1]) + "</code></button>").join("") + "</div>" +
         '<label class="lab-label" for="sql-input">Or type a name</label>' +
