@@ -1,9 +1,10 @@
 // Security Lab: a tiny, phone-first learning app.
 // Screens (hash routes, so the iPhone swipe-back gesture works too):
-//   #/                    Home: progress + the one thing to do next
-//   #/lesson/<id>/<n>     Lesson step n (0 = "what you'll learn")
-//   #/quiz/<id>/<n>       Quiz question n (1-based), one per screen
-//   #/result/<id>         Quiz score + next recommended action
+//   #home                 Home: progress + the one thing to do next
+//   #lesson-<id>-<n>      Lesson step n (0 = "what you'll learn")
+//   #quiz-<id>-<n>        Quiz question n (1-based), one per screen
+//   #result-<id>          Quiz score + next recommended action
+// (Plain #names, so links still work when the page is hosted inside another frame.)
 // Every screen has: a Back button (top left), where you are (title + progress),
 // and exactly one primary button in the bar at the bottom.
 "use strict";
@@ -53,16 +54,16 @@
   // Where the learner should go next, with a label for the big button.
   function nextAction() {
     const lesson = LESSONS.find((l) => !prog(l.id).done);
-    if (!lesson) return { label: "Review: " + LESSONS[0].title, route: "#/lesson/" + LESSONS[0].id + "/0", lesson: null };
+    if (!lesson) return { label: "Review: " + LESSONS[0].title, route: "#lesson-" + LESSONS[0].id + "-0", lesson: null };
     const p = prog(lesson.id);
     const n = indexOf(lesson) + 1;
     if (quizStarted(p)) {
       const nextQ = lesson.quiz.findIndex((q, i) => p.answers[i] === undefined);
-      if (nextQ === -1) return { label: "See your quiz score", route: "#/result/" + lesson.id, lesson, detail: "Quiz finished" };
-      return { label: "Continue quiz", route: "#/quiz/" + lesson.id + "/" + (nextQ + 1), lesson, detail: "Question " + (nextQ + 1) + " of " + lesson.quiz.length };
+      if (nextQ === -1) return { label: "See your quiz score", route: "#result-" + lesson.id, lesson, detail: "Quiz finished" };
+      return { label: "Continue quiz", route: "#quiz-" + lesson.id + "-" + (nextQ + 1), lesson, detail: "Question " + (nextQ + 1) + " of " + lesson.quiz.length };
     }
-    if (p.step > 0) return { label: "Continue lesson " + n, route: "#/lesson/" + lesson.id + "/" + p.step, lesson, detail: "Step " + p.step + " of " + lesson.steps.length };
-    return { label: "Start lesson " + n, route: "#/lesson/" + lesson.id + "/0", lesson, detail: "About " + lesson.minutes + " minutes" };
+    if (p.step > 0) return { label: "Continue lesson " + n, route: "#lesson-" + lesson.id + "-" + p.step, lesson, detail: "Step " + p.step + " of " + lesson.steps.length };
+    return { label: "Start lesson " + n, route: "#lesson-" + lesson.id + "-0", lesson, detail: "About " + lesson.minutes + " minutes" };
   }
 
   // ---------- Shared screen parts ----------
@@ -73,7 +74,7 @@
       html += '<div class="topbar-row">' +
         '<a class="back" href="' + opts.back + '" aria-label="Back"><span aria-hidden="true">‹</span> Back</a>' +
         '<span class="topbar-title">' + esc(opts.title || "") + "</span>" +
-        (opts.home ? '<a class="home-link" href="#/">Home</a>' : '<span class="home-link-spacer"></span>') +
+        (opts.home ? '<a class="home-link" href="#home">Home</a>' : '<span class="home-link-spacer"></span>') +
         "</div>";
     } else {
       html += '<div class="topbar-row topbar-home"><span class="brand"><span class="brand-icon" aria-hidden="true">🛡️</span> Security Lab</span></div>';
@@ -202,7 +203,7 @@
         : quizStarted(p) ? { cls: "active", text: "Quiz started" }
         : p.step > 0 ? { cls: "active", text: "Step " + p.step + " of " + l.steps.length }
         : { cls: "new", text: l.minutes + " min" };
-      const route = p.done || p.step === 0 ? "#/lesson/" + l.id + "/0" : quizStarted(p) ? nextRouteForQuiz(l) : "#/lesson/" + l.id + "/" + p.step;
+      const route = p.done || p.step === 0 ? "#lesson-" + l.id + "-0" : quizStarted(p) ? nextRouteForQuiz(l) : "#lesson-" + l.id + "-" + p.step;
       return '<li><a class="lesson-row" href="' + route + '"><span class="lesson-num' + (p.done ? " is-done" : "") + '" aria-hidden="true">' + (p.done ? "✓" : i + 1) + "</span>" +
         '<span class="lesson-text"><span class="lesson-title">' + esc(l.title) + '</span><span class="lesson-status status-' + status.cls + '">' + esc(status.text) + "</span></span>" +
         '<span class="chev" aria-hidden="true">›</span></a></li>';
@@ -216,7 +217,7 @@
   function nextRouteForQuiz(lesson) {
     const p = prog(lesson.id);
     const i = lesson.quiz.findIndex((q, k) => p.answers[k] === undefined);
-    return i === -1 ? "#/result/" + lesson.id : "#/quiz/" + lesson.id + "/" + (i + 1);
+    return i === -1 ? "#result-" + lesson.id : "#quiz-" + lesson.id + "-" + (i + 1);
   }
 
   function lessonScreen(lesson, n) {
@@ -225,7 +226,7 @@
     const p = prog(lesson.id);
     if (!p.done) { p.step = n; save(); } // where "Continue" should land next time
 
-    const back = n === 0 ? "#/" : "#/lesson/" + lesson.id + "/" + (n - 1);
+    const back = n === 0 ? "#home" : "#lesson-" + lesson.id + "-" + (n - 1);
     const label = n === 0 ? "Lesson " + (indexOf(lesson) + 1) + " of " + LESSONS.length : "Step " + n + " of " + total;
     topbar({ back, title: lesson.title, home: n > 0, progress: { at: n, of: total + 1, label } });
 
@@ -236,7 +237,7 @@
         '<section class="card"><h2>You will learn</h2><ol class="outline">' +
         lesson.steps.map((s) => "<li>" + esc(s.title) + "</li>").join("") +
         '</ol><p class="meta">' + total + " short steps · " + lesson.quiz.length + " questions · about " + lesson.minutes + " min</p></section>";
-      actionbar({ label: "Start", action: () => go("#/lesson/" + lesson.id + "/1") });
+      actionbar({ label: "Start", action: () => go("#lesson-" + lesson.id + "-1") });
       return;
     }
 
@@ -245,10 +246,10 @@
       '<p class="lead">' + esc(s.text) + "</p>" +
       visual(s.visual) + wordsBox(s.words);
     bindTrySql();
-    if (n < total) actionbar({ label: "Next", action: () => go("#/lesson/" + lesson.id + "/" + (n + 1)) });
+    if (n < total) actionbar({ label: "Next", action: () => go("#lesson-" + lesson.id + "-" + (n + 1)) });
     else actionbar({ label: "Start the quiz", action: () => {
       prog(lesson.id).answers = {}; save();
-      go("#/quiz/" + lesson.id + "/1");
+      go("#quiz-" + lesson.id + "-1");
     } });
   }
 
@@ -261,7 +262,7 @@
     const chosen = p.answers[i];
     const answered = chosen !== undefined;
 
-    const back = n === 1 ? "#/lesson/" + lesson.id + "/" + lesson.steps.length : "#/quiz/" + lesson.id + "/" + (n - 1);
+    const back = n === 1 ? "#lesson-" + lesson.id + "-" + lesson.steps.length : "#quiz-" + lesson.id + "-" + (n - 1);
     topbar({ back, title: lesson.title + " quiz", home: true, progress: { at: n - (answered ? 0 : 1), of: total, label: "Question " + n + " of " + total } });
 
     let html = '<p class="eyebrow">Question ' + n + " of " + total + "</p>" +
@@ -291,9 +292,9 @@
       });
       actionbar(null, null, "Tap an answer above");
     } else if (n < total) {
-      actionbar({ label: "Next question", action: () => go("#/quiz/" + lesson.id + "/" + (n + 1)) });
+      actionbar({ label: "Next question", action: () => go("#quiz-" + lesson.id + "-" + (n + 1)) });
     } else {
-      actionbar({ label: "See my score", action: () => go("#/result/" + lesson.id) });
+      actionbar({ label: "See my score", action: () => go("#result-" + lesson.id) });
     }
   }
 
@@ -312,7 +313,7 @@
     p.best = Math.max(p.best || 0, score);
     save();
 
-    topbar({ back: "#/quiz/" + lesson.id + "/" + total, title: lesson.title, home: true, progress: { at: doneCount(), of: LESSONS.length, label: doneCount() + " of " + LESSONS.length + " lessons complete" } });
+    topbar({ back: "#quiz-" + lesson.id + "-" + total, title: lesson.title, home: true, progress: { at: doneCount(), of: LESSONS.length, label: doneCount() + " of " + LESSONS.length + " lessons complete" } });
 
     const nextLesson = LESSONS[indexOf(lesson) + 1];
     const stars = Array.from({ length: total }, (_, k) => '<span class="' + (k < score ? "star on" : "star") + '">' + (k < score ? "★" : "☆") + "</span>").join("");
@@ -323,19 +324,19 @@
       '<p class="lead">' + (passed ? "Nice work. Your progress is saved." : "You need " + passMark(lesson) + " of " + total + " to pass. A quick review will help.") + "</p></div>" +
       (passed && nextLesson ? '<section class="card"><p class="eyebrow">Up next</p><h2>' + esc(nextLesson.title) + "</h2><p>" + esc(nextLesson.goal) + "</p></section>" : "");
 
-    const retry = () => { p.answers = {}; save(); go("#/quiz/" + lesson.id + "/1"); };
-    if (!passed) actionbar({ label: "Review the lesson", action: () => go("#/lesson/" + lesson.id + "/1") }, { label: "Try the quiz again", action: retry });
-    else if (nextLesson) actionbar({ label: "Start lesson " + (indexOf(nextLesson) + 1), action: () => go("#/lesson/" + nextLesson.id + "/0") }, { label: "Back to home", action: () => go("#/") });
-    else actionbar({ label: "Back to home", action: () => go("#/") });
+    const retry = () => { p.answers = {}; save(); go("#quiz-" + lesson.id + "-1"); };
+    if (!passed) actionbar({ label: "Review the lesson", action: () => go("#lesson-" + lesson.id + "-1") }, { label: "Try the quiz again", action: retry });
+    else if (nextLesson) actionbar({ label: "Start lesson " + (indexOf(nextLesson) + 1), action: () => go("#lesson-" + nextLesson.id + "-0") }, { label: "Back to home", action: () => go("#home") });
+    else actionbar({ label: "Back to home", action: () => go("#home") });
   }
 
   // ---------- Router ----------
   function route() {
-    const parts = location.hash.replace(/^#\/?/, "").split("/").filter(Boolean);
-    const lesson = parts[1] ? lessonById(parts[1]) : null;
-    if (parts[0] === "lesson" && lesson) lessonScreen(lesson, parseInt(parts[2], 10) || 0);
-    else if (parts[0] === "quiz" && lesson) quizScreen(lesson, parseInt(parts[2], 10) || 1);
-    else if (parts[0] === "result" && lesson) resultScreen(lesson);
+    const m = /^#(lesson|quiz|result)-(.+?)(?:-(\d+))?$/.exec(location.hash) || [];
+    const lesson = m[2] ? lessonById(m[2]) : null;
+    if (m[1] === "lesson" && lesson) lessonScreen(lesson, parseInt(m[3], 10) || 0);
+    else if (m[1] === "quiz" && lesson) quizScreen(lesson, parseInt(m[3], 10) || 1);
+    else if (m[1] === "result" && lesson) resultScreen(lesson);
     else homeScreen();
     window.scrollTo(0, 0);
     const h1 = $screen.querySelector("h1");
