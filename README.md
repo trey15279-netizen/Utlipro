@@ -11,6 +11,7 @@ Instant lead alerts and a lead dashboard for roofers. One Node.js server runs th
 | `/twilio/voice`, `/twilio/sms` | Where Twilio sends calls and texts to a roofer's Command Hub number |
 | `/admin` | Campaign stats for you (only emails listed in `ADMIN_EMAILS`) |
 | `/privacy` | Privacy policy (fill in the highlighted placeholders) |
+| `/lab/` | Security Lab: short, phone-first security lessons for beginners. Edit lessons in `public/lab/content.js`. |
 | `/api/...` | JSON API used by the dashboard |
 
 ## How a lead flows

@@ -195,3 +195,16 @@ test("site visits are tracked by campaign and person, and only admins see stats"
     assert.strictEqual((await fetch(base + "/privacy")).status, 200);
   } finally { server.close(); }
 });
+
+test("Security Lab is served at /lab/", async () => {
+  const { server, base } = await start();
+  try {
+    const r = await fetch(base + "/lab", { redirect: "manual" });
+    assert.strictEqual(r.status, 302);
+    assert.strictEqual(r.headers.get("location"), "/lab/");
+    const page = await fetch(base + "/lab/");
+    assert.strictEqual(page.status, 200);
+    assert.match(await page.text(), /<title>Security Lab<\/title>/);
+    for (const f of ["lab.js", "lab.css", "content.js"]) assert.strictEqual((await fetch(base + "/lab/" + f)).status, 200, f);
+  } finally { server.close(); }
+});

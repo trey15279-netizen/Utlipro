@@ -742,6 +742,7 @@ function createApp(opts) {
         return;
       }
       if (pathname === "/privacy") { serveFile(res, path.join(publicDir, "privacy.html")); return; }
+      if (pathname === "/lab") { redirect(res, "/lab/"); return; }
       if (pathname === "/app") { redirect(res, "/app/"); return; }
       if (pathname === "/admin") {
         const who = current(req);
